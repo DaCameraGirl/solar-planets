@@ -25,12 +25,27 @@ var state = {
 };
 
 var EARTH_YEAR_DAYS = 365.25;
+var MOON_ORBIT_DAYS = 27.3;
+var TIME_SLIDER_DEFAULT = 10;
+var MIN_DAYS_PER_SEC = 1 / 180;
+var MAX_DAYS_PER_SEC = 28;
 
 function daysPerSecondFromSlider(val) {
-  return 0.25 + (val / 100) * 24.75;
+  var t = Math.max(0, Math.min(100, val)) / 100;
+  return MIN_DAYS_PER_SEC * Math.pow(MAX_DAYS_PER_SEC / MIN_DAYS_PER_SEC, t);
+}
+
+function formatDuration(sec) {
+  if (sec < 90) return sec.toFixed(0) + ' sec';
+  if (sec < 3600) return (sec / 60).toFixed(1) + ' min';
+  if (sec < 86400) return (sec / 3600).toFixed(1) + ' hr';
+  return (sec / 86400).toFixed(1) + ' days';
 }
 
 function formatSimSpeed(daysPerSec) {
+  if (daysPerSec < 1 / 48) {
+    return '1 Earth day ≈ ' + formatDuration(1 / daysPerSec);
+  }
   if (daysPerSec < 1) {
     var hrs = daysPerSec * 24;
     if (hrs < 1) return '1 sec = ' + Math.round(daysPerSec * 24 * 60) + ' min';
@@ -50,11 +65,12 @@ function updateTimeScaleUI() {
   if (stat) stat.textContent = label;
   if (panel) panel.textContent = label;
   if (earthHint) {
-    var yearSec = EARTH_YEAR_DAYS / state.daysPerSecond;
     var spinSec = 1 / state.daysPerSecond;
-    var yearLabel = yearSec >= 60 ? (yearSec / 60).toFixed(1) + ' min' : yearSec.toFixed(0) + ' sec';
-    var spinLabel = spinSec >= 1 ? spinSec.toFixed(1) + ' sec' : (spinSec * 1000).toFixed(0) + ' ms';
-    earthHint.textContent = 'Earth year ≈ ' + yearLabel + ' · 1 Earth day (1 spin) ≈ ' + spinLabel;
+    var moonSec = MOON_ORBIT_DAYS / state.daysPerSecond;
+    earthHint.textContent =
+      '1 Earth spin ≈ ' + formatDuration(spinSec) +
+      ' · Moon orbit ≈ ' + formatDuration(moonSec) +
+      ' (real ratio: Moon is ' + MOON_ORBIT_DAYS + '× slower)';
   }
 }
 
@@ -167,7 +183,6 @@ var SUN = {
   facts: { 'Type': 'G-type main sequence', 'Age': '~4.6 billion years', 'Planets': '8' }
 };
 
-var MOON_ORBIT_DAYS = 27.3;
 var MOON_ROT_DAYS = 27.3;
 
 var MOON = {
@@ -920,7 +935,7 @@ function animate() {
     var spinTarget = d.body || g;
     spinTarget.children.forEach(function (ch) {
       if (ch.userData && ch.userData.isClouds) {
-        ch.rotation.y = advanceSpin(ch.rotation.y, d.def.rotDays * 0.55, dt, false);
+        ch.rotation.y = advanceSpin(ch.rotation.y, d.def.rotDays * 1.02, dt, false);
       }
       if (ch.userData && ch.userData.orbit) {
         ch.userData.angle = advanceOrbit(ch.userData.angle, ch.userData.orbitDays, dt);
@@ -974,7 +989,9 @@ async function boot() {
     buildScene(textures);
     buildLegend();
     setSelected('sun');
-    state.daysPerSecond = daysPerSecondFromSlider(35);
+    var timeSlider = document.getElementById('timeScale');
+    if (timeSlider) timeSlider.value = String(TIME_SLIDER_DEFAULT);
+    state.daysPerSecond = daysPerSecondFromSlider(TIME_SLIDER_DEFAULT);
     updateTimeScaleUI();
     if (loadingEl) {
       setTimeout(function () { loadingEl.classList.add('hidden'); }, 400);

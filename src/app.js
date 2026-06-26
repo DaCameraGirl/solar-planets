@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 var errBox = document.getElementById('error');
 function fail(msg) {
@@ -113,8 +116,17 @@ var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 1.38;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 container.appendChild(renderer.domElement);
+
+var composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+var bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.55, 0.42, 0.88
+);
+composer.addPass(bloomPass);
 
 var labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -129,7 +141,7 @@ var sunLight = new THREE.PointLight(0xfff0cc, 3.2, 220, 1.4);
 scene.add(sunLight);
 
 var starGeo = new THREE.BufferGeometry();
-var starCount = 3200;
+var starCount = 4800;
 var starPos = new Float32Array(starCount * 3);
 for (var i = 0; i < starCount; i++) {
   var r = 120 + Math.random() * 80;
@@ -141,7 +153,7 @@ for (var i = 0; i < starCount; i++) {
 }
 starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
 var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
-  color: 0xffffff, size: 0.55, transparent: true, opacity: 0.75, sizeAttenuation: true
+  color: 0xe8f0ff, size: 0.65, transparent: true, opacity: 0.82, sizeAttenuation: true
 }));
 scene.add(stars);
 
@@ -164,15 +176,15 @@ function makeLabel(text) {
 function buildScene(textures) {
   sunCore = new THREE.Mesh(
     new THREE.SphereGeometry(3.2, 64, 64),
-    new THREE.MeshBasicMaterial({ map: textures.sun })
+    new THREE.MeshBasicMaterial({ map: textures.sun, color: 0xffffff })
   );
   sunGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(4.8, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0xffaa33, transparent: true, opacity: 0.18 })
+    new THREE.SphereGeometry(5.2, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffcc66, transparent: true, opacity: 0.28 })
   );
   sunCorona = new THREE.Mesh(
-    new THREE.SphereGeometry(6.5, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.06 })
+    new THREE.SphereGeometry(7.5, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xff7722, transparent: true, opacity: 0.1 })
   );
   sunGroup.add(sunCorona); sunGroup.add(sunGlow); sunGroup.add(sunCore);
   scene.add(sunGroup);
@@ -187,8 +199,8 @@ function buildScene(textures) {
     var meshSize = 0.55 + def.size * 0.55;
     var mat = new THREE.MeshStandardMaterial({
       map: textures[def.id],
-      roughness: 0.82, metalness: 0.08,
-      emissive: new THREE.Color(def.color), emissiveIntensity: 0.03
+      roughness: 0.78, metalness: 0.12,
+      emissive: new THREE.Color(def.color), emissiveIntensity: 0.05
     });
     var mesh = new THREE.Mesh(new THREE.SphereGeometry(meshSize, 48, 48), mat);
     group.add(mesh);
@@ -373,6 +385,8 @@ window.addEventListener('resize', function () {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
+  bloomPass.setSize(window.innerWidth, window.innerHeight);
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
@@ -423,7 +437,7 @@ function animate() {
   });
 
   updateCamera();
-  renderer.render(scene, camera);
+  composer.render();
   labelRenderer.render(scene, camera);
 
   fpsFrames++;
@@ -452,7 +466,9 @@ async function boot() {
     buildLegend();
     setSelected('sun');
     document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
-    if (loadingEl) loadingEl.classList.add('hidden');
+    if (loadingEl) {
+      setTimeout(function () { loadingEl.classList.add('hidden'); }, 400);
+    }
     animate();
   } catch (e) {
     if (loadingEl) loadingEl.classList.add('hidden');

@@ -146,6 +146,42 @@ html, body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 #panel section:last-child { border-bottom: 0; }
+.panel-live { padding-top: 12px !important; }
+.live-link {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 14px; border-radius: 10px; text-decoration: none;
+  font: 600 12.5px/1 var(--font-ui); color: #041018;
+  background: linear-gradient(135deg, var(--cyan) 0%, #67e8f9 40%, var(--gold-bright) 100%);
+  background-size: 200% 200%;
+  animation: live-shimmer 4s ease-in-out infinite;
+  box-shadow: 0 4px 22px rgba(255, 179, 71, 0.28);
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.2s;
+}
+.live-link:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(255, 179, 71, 0.38);
+}
+.live-link .live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #0a5c14; box-shadow: 0 0 8px #4ade80, 0 0 14px #22c55e;
+  animation: live-pulse 2s ease-in-out infinite;
+}
+.sibling-link {
+  display: block; margin-top: 8px; text-align: center;
+  font: 500 11px/1 var(--font-ui); color: var(--muted);
+  text-decoration: none; letter-spacing: 0.02em;
+  transition: color 0.15s;
+}
+.sibling-link:hover { color: var(--gold-bright); }
+@keyframes live-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(0.88); }
+}
 #panel h2 {
   margin: 0 0 12px; padding-bottom: 8px;
   font: 600 10px/1 var(--font-mono);
@@ -253,5 +289,6 @@ button.ghost:hover { border-color: var(--stroke-gold); background: rgba(212, 175
 
 @media (prefers-reduced-motion: reduce) {
   .premiere-ring::before, .premiere-ring::after,
-  #brand .logo, #brand .live-dot { animation: none; }
+  #brand .logo, #brand .live-dot,
+  .live-link, .live-link .live-dot { animation: none; }
 }

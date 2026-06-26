@@ -1,0 +1,14 @@
+{
+  "name": "solar-planets",
+  "version": "1.0.0",
+  "description": "A cinematic 3D solar system in the browser — real planets, living orbits, enterprise observatory UI.",
+  "homepage": "https://dacameragirl.github.io/solar-planets/",
+  "author": "Angela Hudson (DaCameraGirl)",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "scripts": {
+    "start": "npx serve .",
+    "readme:i18n": "node scripts/generate-readme-i18n-assets.mjs"
+  },
+  "keywords": ["three.js", "solar-system", "planets", "visualization", "webgl", "astronomy"]
+}

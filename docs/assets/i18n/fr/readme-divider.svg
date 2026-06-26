@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 56" role="img" aria-hidden="true" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="bar" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#010208"/>
+      <stop offset="50%" stop-color="#2a1840"/>
+      <stop offset="100%" stop-color="#010208"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="56" rx="10" fill="url(#bar)"/>
+  <rect x="0" y="27" width="1200" height="2" fill="#3d2a10" opacity="0.7"/>
+  <rect x="200" y="27" width="800" height="2" fill="#ffd54f" opacity="0.55">
+    <animate attributeName="opacity" values="0.25;0.9;0.25" dur="4s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="160;240;160" dur="8s" repeatCount="indefinite"/>
+  </rect>
+  <g fill="#e8edf5">
+    <circle cx="48" cy="28" r="1.8" opacity="0.7"><animate attributeName="opacity" values="0.3;1;0.3" dur="2.4s" repeatCount="indefinite"/></circle>
+    <circle cx="1120" cy="28" r="1.5" opacity="0.6"><animate attributeName="opacity" values="0.4;1;0.4" dur="3s" repeatCount="indefinite"/></circle>
+    <circle cx="600" cy="14" r="1.2" fill="#ffd54f" opacity="0.5"/>
+    <circle cx="720" cy="40" r="1.4" fill="#ffb347" opacity="0.55"/>
+    <circle cx="480" cy="40" r="1.1" fill="#6ee7f7" opacity="0.5"/>
+  </g>
+</svg>

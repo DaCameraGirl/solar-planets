@@ -46,6 +46,8 @@
       <label class="row"><input id="showOrbits" type="checkbox" checked /> Orbit paths</label>
       <p class="hint small">Each orbit matches its planet&rsquo;s legend color. Click a world to highlight its ring.</p>
       <label class="row"><input id="showLabels" type="checkbox" checked /> Planet labels</label>
+      <label class="row"><input id="dayNightCycle" type="checkbox" checked /> Day / night sky cycle</label>
+      <p class="hint small">Real Milky Way photo sky, Earth city lights at night, clouds by day — sky shifts as Earth spins.</p>
       <label>Sim speed <span id="timeScaleLabel" class="hint">1 sec = 9 Earth days</span>
         <input id="timeScale" type="range" min="0" max="100" value="35" />
       </label>
@@ -73,6 +75,7 @@
     <div id="stats" class="glass-bar">
       <span><strong id="stat-bodies">10</strong> bodies</span>
       <span><strong id="stat-fps">0</strong> fps</span>
+      <span id="stat-sky">Night sky</span>
       <span id="stat-scale">1 sec = 9 days</span>
     </div>
   </footer>

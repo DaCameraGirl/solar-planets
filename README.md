@@ -21,7 +21,7 @@ Spin-off from the [Latent Space Observatory](https://github.com/DaCameraGirl/lat
 ## Features
 
 - **Sun** with pulsing corona and dynamic lighting
-- **8 planets** with procedural surfaces, atmosphere halos, and scaled orbits
+- **8 planets** with bundled 2K surface maps (Solar System Scope), atmosphere halos, and scaled orbits
 - **Saturn's rings** and **Earth's moon**
 - **3,200-star** starfield
 - **Click** any planet for facts; legend chips for quick focus

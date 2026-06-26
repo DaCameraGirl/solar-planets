@@ -37,8 +37,8 @@ html, body {
 .premiere-vignette {
   position: fixed; inset: 0; z-index: 2; pointer-events: none;
   background:
-    radial-gradient(ellipse 120% 80% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.58) 100%),
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 179, 71, 0.06), transparent 55%);
+    radial-gradient(ellipse 120% 80% at 50% 50%, transparent 48%, rgba(0, 0, 0, 0.42) 100%),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(255, 179, 71, 0.04), transparent 55%);
 }
 
 .premiere-grain {

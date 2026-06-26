@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 72" role="img" aria-label="GitHub Pages 上的实时电影级太阳系">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0f131a"/>
+      <stop offset="100%" stop-color="#1a2350"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="72" rx="14" fill="url(#bg)" stroke="#1c2430" stroke-width="1"/>
+  <circle cx="36" cy="36" r="8" fill="#ffd54f" opacity="0.25">
+    <animate attributeName="r" values="6;10;6" dur="2.5s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.15;0.4;0.15" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="36" cy="36" r="4" fill="#ffd54f"/>
+  <text x="58" y="32" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#e8edf5">状态：GitHub Pages 已上线 · 内置贴图 · 泛光开启</text>
+  <text x="58" y="52" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" font-weight="500" fill="#8a99b0">无需 API 密钥 · 无服务器 · 点击查看 · 自动轨道相机</text>
+  <text x="820" y="38" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#ffd54f" opacity="0.85">
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>bloom · ACES
+  </text>
+</svg>

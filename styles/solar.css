@@ -208,7 +208,11 @@ html, body {
 select, input[type="range"] { width: 100%; margin-top: 7px; accent-color: var(--gold); }
 input[type="checkbox"] { accent-color: var(--solar); }
 
-.btnrow { display: flex; gap: 8px; margin-top: 8px; }
+.btnrow { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+#stopMotion {
+  border-color: rgba(110, 231, 247, 0.45);
+  background: linear-gradient(180deg, rgba(110, 231, 247, 0.14), rgba(8, 12, 24, 0.9));
+}
 button {
   flex: 1; cursor: pointer;
   font: 600 12.5px/1 var(--font-ui); color: #041018;

@@ -196,6 +196,74 @@ function isGasGiant(id) {
   return id === 'jupiter' || id === 'saturn' || id === 'uranus' || id === 'neptune';
 }
 
+var SUN_WORLD = new THREE.Vector3(0, 0, 0);
+
+var PLANET_SURFACE_VERT = [
+  'varying vec2 vUv;',
+  'varying vec3 vWorldNormal;',
+  'varying vec3 vWorldPos;',
+  'void main() {',
+  '  vUv = uv;',
+  '  vec4 worldPos = modelMatrix * vec4(position, 1.0);',
+  '  vWorldPos = worldPos.xyz;',
+  '  vWorldNormal = normalize(mat3(modelMatrix) * normal);',
+  '  gl_Position = projectionMatrix * viewMatrix * worldPos;',
+  '}'
+].join('\n');
+
+var PLANET_SURFACE_FRAG = [
+  'uniform sampler2D map;',
+  'uniform vec3 sunPosition;',
+  'uniform float ambientFloor;',
+  'uniform float litBoost;',
+  'uniform float contrastPower;',
+  'uniform float rimStrength;',
+  'varying vec2 vUv;',
+  'varying vec3 vWorldNormal;',
+  'varying vec3 vWorldPos;',
+  'void main() {',
+  '  vec3 albedo = texture2D(map, vUv).rgb;',
+  '  vec3 N = normalize(vWorldNormal);',
+  '  vec3 L = normalize(sunPosition - vWorldPos);',
+  '  float ndotl = max(dot(N, L), 0.0);',
+  '  float shade = mix(ambientFloor, litBoost, pow(ndotl, contrastPower));',
+  '  vec3 color = albedo * shade;',
+  '  vec3 V = normalize(cameraPosition - vWorldPos);',
+  '  float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.2);',
+  '  color += albedo * fresnel * rimStrength;',
+  '  gl_FragColor = vec4(color, 1.0);',
+  '}'
+].join('\n');
+
+function surfaceLightingFor(def) {
+  if (def.id === 'moon') {
+    return { ambientFloor: 0.44, litBoost: 1.14, contrastPower: 0.82, rimStrength: 0.1 };
+  }
+  if (isGasGiant(def.id)) {
+    return { ambientFloor: 0.54, litBoost: 1.1, contrastPower: 0.5, rimStrength: 0.14 };
+  }
+  if (def.id === 'earth') {
+    return { ambientFloor: 0.48, litBoost: 1.16, contrastPower: 0.62, rimStrength: 0.12 };
+  }
+  return { ambientFloor: 0.42, litBoost: 1.2, contrastPower: 0.72, rimStrength: 0.1 };
+}
+
+function planetMaterial(def, tex) {
+  var light = surfaceLightingFor(def);
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      map: { value: tex },
+      sunPosition: { value: SUN_WORLD },
+      ambientFloor: { value: light.ambientFloor },
+      litBoost: { value: light.litBoost },
+      contrastPower: { value: light.contrastPower },
+      rimStrength: { value: light.rimStrength }
+    },
+    vertexShader: PLANET_SURFACE_VERT,
+    fragmentShader: PLANET_SURFACE_FRAG
+  });
+}
+
 // ---- renderer -----------------------------------------------------------
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 500);
@@ -225,9 +293,9 @@ labelRenderer.domElement.style.pointerEvents = 'none';
 container.appendChild(labelRenderer.domElement);
 
 // ---- lights & stars -----------------------------------------------------
-scene.add(new THREE.AmbientLight(0x1a2240, 0.08));
-scene.add(new THREE.HemisphereLight(0xb8d4ff, 0x120c18, 0.22));
-var sunLight = new THREE.PointLight(0xfff8e8, 6.2, 300, 2);
+scene.add(new THREE.AmbientLight(0x2a3558, 0.14));
+scene.add(new THREE.HemisphereLight(0xb8d4ff, 0x1a1424, 0.28));
+var sunLight = new THREE.PointLight(0xfff8e8, 8.5, 320, 1.6);
 var starGeo = new THREE.BufferGeometry();
 var starCount = 5200;
 var starPos = new Float32Array(starCount * 3);
@@ -281,21 +349,6 @@ function addAtmosphere(parent, radius, cfg) {
     })
   );
   parent.add(shell);
-}
-
-function planetMaterial(def, tex) {
-  var gas = isGasGiant(def.id);
-  var mat = new THREE.MeshStandardMaterial({
-    map: tex,
-    color: 0xffffff,
-    roughness: gas ? 0.55 : (def.roughness != null ? def.roughness : 0.82),
-    metalness: gas ? 0.02 : (def.metalness != null ? def.metalness : 0.04)
-  });
-  if (!gas) {
-    mat.bumpMap = tex;
-    mat.bumpScale = def.bumpScale != null ? def.bumpScale : 0.12;
-  }
-  return mat;
 }
 
 function makeRingMesh(inner, outer, tex) {
@@ -410,10 +463,8 @@ function buildScene(textures) {
     var moonOrbit = earthSize * 2.4;
     var moonTex = textures.moon;
     var moonMat = moonTex
-      ? new THREE.MeshStandardMaterial({
-          map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.2
-        })
-      : new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 });
+      ? planetMaterial({ id: 'moon' }, moonTex)
+      : new THREE.MeshBasicMaterial({ color: 0xcccccc });
     moonMesh = new THREE.Mesh(new THREE.SphereGeometry(earthSize * 0.28, 36, 36), moonMat);
     moonMesh.userData.orbit = moonOrbit;
     moonMesh.userData.orbitDays = MOON_ORBIT_DAYS;
@@ -506,7 +557,9 @@ function focusBody(id) {
   var g = planets.find(function (p) { return p.userData.def.id === id; });
   if (g) {
     camTarget.copy(g.position);
-    camDist = Math.max(16, 12 + g.userData.def.size * 6);
+    var meshR = 0.55 + g.userData.def.size * 0.55;
+    camDist = Math.max(meshR * 3.2, 8 + meshR * 2.8);
+    camPhi = 0.52;
     snapCameraToTarget();
   }
 }

@@ -42,7 +42,9 @@
     </section>
     <section>
       <h2>View</h2>
-      <label class="row"><input id="autoOrbit" type="checkbox" checked /> Auto-orbit camera</label>
+      <label class="row"><input id="planetSpin" type="checkbox" /> Planet spin</label>
+      <label class="row"><input id="planetOrbit" type="checkbox" /> Orbit motion</label>
+      <label class="row"><input id="autoOrbit" type="checkbox" /> Auto-orbit camera</label>
       <label class="row"><input id="showOrbits" type="checkbox" checked /> Orbit paths</label>
       <p class="hint small">Each orbit matches its planet&rsquo;s legend color. Click a world to highlight its ring.</p>
       <label class="row"><input id="showLabels" type="checkbox" checked /> Planet labels</label>
@@ -61,12 +63,13 @@
         <button id="focusEarth" class="ghost">Focus Earth</button>
         <button id="focusMoon" class="ghost">Focus Moon</button>
       </div>
-      <p class="hint small">Moon is Earth&rsquo;s satellite — not a planet. Click <strong>Moon</strong> in the legend bar below, or focus Earth and look for the gray world in orbit.</p>
+      <p class="hint small"><strong>Globe mode:</strong> spin and orbits are off by default — click any planet in the legend, scroll in close, drag to study the surface. Turn on spin/orbit when you want the show to move.</p>
+      <p class="hint small">Moon is Earth&rsquo;s satellite — click <strong>Moon</strong> in the legend bar below to inspect it up close.</p>
     </section>
     <section id="planetInfo">
       <h2>Selected</h2>
       <p id="infoName" class="info-title">Sun</p>
-      <p id="infoDesc" class="hint">Click any planet to inspect. Drag to look around, scroll to zoom.</p>
+      <p id="infoDesc" class="hint">Click any world in the legend, then scroll to zoom into the globe — drag to look around. Oceans and continents are real NASA-style maps.</p>
       <dl id="infoStats" class="stats-dl"></dl>
     </section>
   </aside>

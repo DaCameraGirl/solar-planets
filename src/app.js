@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
 var errBox = document.getElementById('error');
 function fail(msg) {
@@ -9,6 +10,8 @@ function fail(msg) {
 var container = document.getElementById('view');
 if (!container) { fail('Missing #view container'); throw new Error('no view'); }
 
+var loadingEl = document.getElementById('loading');
+
 var state = {
   autoOrbit: true,
   showOrbits: true,
@@ -17,47 +20,70 @@ var state = {
   selected: 'sun'
 };
 
+var TEXTURE_BASE = 'https://www.solarsystemscope.com/textures/download/';
+var TEXTURES = {
+  sun: TEXTURE_BASE + '2k_sun.jpg',
+  mercury: TEXTURE_BASE + '2k_mercury.jpg',
+  venus: TEXTURE_BASE + '2k_venus_surface.jpg',
+  earth: TEXTURE_BASE + '2k_earth_daymap.jpg',
+  earthClouds: TEXTURE_BASE + '2k_earth_clouds.jpg',
+  mars: TEXTURE_BASE + '2k_mars.jpg',
+  jupiter: TEXTURE_BASE + '2k_jupiter.jpg',
+  saturn: TEXTURE_BASE + '2k_saturn.jpg',
+  saturnRing: TEXTURE_BASE + '2k_saturn_ring_alpha.png',
+  uranus: TEXTURE_BASE + '2k_uranus.jpg',
+  neptune: TEXTURE_BASE + '2k_neptune.jpg',
+  moon: TEXTURE_BASE + '2k_moon.jpg'
+};
+
 var BODIES = [
   {
     id: 'mercury', name: 'Mercury', color: '#b5b5b5', size: 0.38, orbit: 10, speed: 4.15,
     desc: 'The swift inner world — scorched, cratered, and closest to the Sun.',
-    facts: { 'Day length': '59 Earth days', 'Year': '88 Earth days', 'Moons': '0' }
+    facts: { 'Day length': '59 Earth days', 'Year': '88 Earth days', 'Moons': '0' },
+    map: TEXTURES.mercury
   },
   {
     id: 'venus', name: 'Venus', color: '#e8cda0', size: 0.95, orbit: 14, speed: 1.62,
     desc: "A brilliant sulfuric haze world — Earth's twin in size, opposite in temperament.",
-    facts: { 'Day length': '243 Earth days', 'Year': '225 Earth days', 'Moons': '0' }
+    facts: { 'Day length': '243 Earth days', 'Year': '225 Earth days', 'Moons': '0' },
+    map: TEXTURES.venus
   },
   {
     id: 'earth', name: 'Earth', color: '#4a9eff', size: 1.0, orbit: 18, speed: 1.0,
     desc: 'Our home — blue oceans, white clouds, and the only known harbor of life.',
-    facts: { 'Day length': '24 hours', 'Year': '365 days', 'Moons': '1 (Luna)' }
+    facts: { 'Day length': '24 hours', 'Year': '365 days', 'Moons': '1 (Luna)' },
+    map: TEXTURES.earth, clouds: TEXTURES.earthClouds
   },
   {
     id: 'mars', name: 'Mars', color: '#c1440e', size: 0.53, orbit: 23, speed: 0.53,
     desc: "The red frontier — dust storms, polar ice, and humanity's next horizon.",
-    facts: { 'Day length': '24.6 hours', 'Year': '687 Earth days', 'Moons': '2' }
+    facts: { 'Day length': '24.6 hours', 'Year': '687 Earth days', 'Moons': '2' },
+    map: TEXTURES.mars
   },
   {
     id: 'jupiter', name: 'Jupiter', color: '#d4a574', size: 2.8, orbit: 32, speed: 0.084,
     desc: 'The giant king — banded storms and a magnetosphere that shapes the outer system.',
-    facts: { 'Day length': '9.9 hours', 'Year': '12 Earth years', 'Moons': '95+' }
+    facts: { 'Day length': '9.9 hours', 'Year': '12 Earth years', 'Moons': '95+' },
+    map: TEXTURES.jupiter
   },
   {
     id: 'saturn', name: 'Saturn', color: '#f0d9a8', size: 2.35, orbit: 42, speed: 0.034,
     desc: 'The ringed jewel — ice and rock in a halo that defines the solar aesthetic.',
     facts: { 'Day length': '10.7 hours', 'Year': '29 Earth years', 'Moons': '146+' },
-    rings: true
+    map: TEXTURES.saturn, rings: true, ringMap: TEXTURES.saturnRing
   },
   {
     id: 'uranus', name: 'Uranus', color: '#7de3f4', size: 1.6, orbit: 52, speed: 0.012,
     desc: 'The tilted ice giant — rolling on its side through a pale cyan haze.',
-    facts: { 'Day length': '17 hours', 'Year': '84 Earth years', 'Moons': '28' }
+    facts: { 'Day length': '17 hours', 'Year': '84 Earth years', 'Moons': '28' },
+    map: TEXTURES.uranus
   },
   {
     id: 'neptune', name: 'Neptune', color: '#3d5afe', size: 1.55, orbit: 60, speed: 0.006,
     desc: 'The deep blue sentinel — supersonic winds at the edge of our planetary family.',
-    facts: { 'Day length': '16 hours', 'Year': '165 Earth years', 'Moons': '16' }
+    facts: { 'Day length': '16 hours', 'Year': '165 Earth years', 'Moons': '16' },
+    map: TEXTURES.neptune
   }
 ];
 
@@ -66,6 +92,17 @@ var SUN = {
   desc: 'The engine of the system — fusion fire, light, and gravity holding every world in dance.',
   facts: { 'Type': 'G-type main sequence', 'Age': '~4.6 billion years', 'Planets': '8' }
 };
+
+var loader = new THREE.TextureLoader();
+function loadTex(url) {
+  return new Promise(function (resolve, reject) {
+    loader.load(url, resolve, undefined, reject);
+  });
+}
+function prepTex(tex) {
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 
 // ---- renderer -----------------------------------------------------------
 var scene = new THREE.Scene();
@@ -78,6 +115,13 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 container.appendChild(renderer.domElement);
+
+var labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(window.innerWidth, window.innerHeight);
+labelRenderer.domElement.style.position = 'absolute';
+labelRenderer.domElement.style.top = '0';
+labelRenderer.domElement.style.pointerEvents = 'none';
+container.appendChild(labelRenderer.domElement);
 
 // ---- lights & stars -----------------------------------------------------
 scene.add(new THREE.AmbientLight(0x223355, 0.35));
@@ -101,153 +145,122 @@ var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
 }));
 scene.add(stars);
 
-// ---- textures (procedural) ----------------------------------------------
-function planetTexture(hex, style) {
-  var c = document.createElement('canvas');
-  c.width = c.height = 512;
-  var ctx = c.getContext('2d');
-  var g = ctx.createRadialGradient(160, 140, 20, 256, 256, 280);
-  g.addColorStop(0, lighten(hex, 40));
-  g.addColorStop(0.45, hex);
-  g.addColorStop(1, darken(hex, 50));
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 512, 512);
-
-  if (style === 'bands') {
-    for (var b = 0; b < 14; b++) {
-      ctx.fillStyle = 'rgba(0,0,0,' + (0.06 + Math.random() * 0.08) + ')';
-      ctx.fillRect(0, b * 36 + Math.random() * 10, 512, 18 + Math.random() * 20);
-    }
-  }
-  if (style === 'clouds') {
-    for (var cl = 0; cl < 40; cl++) {
-      ctx.fillStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.12) + ')';
-      ctx.beginPath();
-      ctx.ellipse(Math.random() * 512, Math.random() * 512, 30 + Math.random() * 80, 10 + Math.random() * 30, Math.random(), 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  if (style === 'craters') {
-    for (var cr = 0; cr < 35; cr++) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(Math.random() * 512, Math.random() * 512, 4 + Math.random() * 18, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-
-  var tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
-function lighten(hex, amt) {
-  var n = parseInt(hex.slice(1), 16);
-  var r = Math.min(255, ((n >> 16) & 255) + amt);
-  var g = Math.min(255, ((n >> 8) & 255) + amt);
-  var b = Math.min(255, (n & 255) + amt);
-  return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
-function darken(hex, amt) {
-  var n = parseInt(hex.slice(1), 16);
-  var r = Math.max(0, ((n >> 16) & 255) - amt);
-  var g = Math.max(0, ((n >> 8) & 255) - amt);
-  var b = Math.max(0, (n & 255) - amt);
-  return 'rgb(' + r + ',' + g + ',' + b + ')';
-}
-
-var STYLE = {
-  mercury: 'craters', venus: 'clouds', earth: 'clouds', mars: 'craters',
-  jupiter: 'bands', saturn: 'bands', uranus: 'clouds', neptune: 'clouds'
-};
-
-// ---- sun ----------------------------------------------------------------
+// ---- sun & planets (textures loaded at boot) ------------------------------
 var sunGroup = new THREE.Group();
-var sunCore = new THREE.Mesh(
-  new THREE.SphereGeometry(3.2, 64, 64),
-  new THREE.MeshBasicMaterial({ color: 0xffdd66 })
-);
-var sunGlow = new THREE.Mesh(
-  new THREE.SphereGeometry(4.8, 48, 48),
-  new THREE.MeshBasicMaterial({ color: 0xffaa33, transparent: true, opacity: 0.18 })
-);
-var sunCorona = new THREE.Mesh(
-  new THREE.SphereGeometry(6.5, 32, 32),
-  new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.06 })
-);
-sunGroup.add(sunCorona); sunGroup.add(sunGlow); sunGroup.add(sunCore);
-scene.add(sunGroup);
-
-// ---- planets ------------------------------------------------------------
+var sunCore, sunGlow, sunCorona;
 var planets = [];
 var orbitLines = [];
-var labels = [];
+var labelObjs = [];
 
-BODIES.forEach(function (def, idx) {
-  var group = new THREE.Group();
-  var meshSize = 0.55 + def.size * 0.55;
-  var tex = planetTexture(def.color, STYLE[def.id] || 'clouds');
-  var mat = new THREE.MeshStandardMaterial({
-    map: tex, roughness: 0.82, metalness: 0.08,
-    emissive: new THREE.Color(def.color), emissiveIntensity: 0.04
+function makeLabel(text) {
+  var el = document.createElement('div');
+  el.className = 'planet-label';
+  el.textContent = text;
+  var obj = new CSS2DObject(el);
+  obj.visible = state.showLabels;
+  return obj;
+}
+
+function buildScene(textures) {
+  sunCore = new THREE.Mesh(
+    new THREE.SphereGeometry(3.2, 64, 64),
+    new THREE.MeshBasicMaterial({ map: textures.sun })
+  );
+  sunGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(4.8, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffaa33, transparent: true, opacity: 0.18 })
+  );
+  sunCorona = new THREE.Mesh(
+    new THREE.SphereGeometry(6.5, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 0.06 })
+  );
+  sunGroup.add(sunCorona); sunGroup.add(sunGlow); sunGroup.add(sunCore);
+  scene.add(sunGroup);
+
+  var sunLabel = makeLabel('Sun');
+  sunLabel.position.set(0, 5.2, 0);
+  sunGroup.add(sunLabel);
+  labelObjs.push(sunLabel);
+
+  BODIES.forEach(function (def, idx) {
+    var group = new THREE.Group();
+    var meshSize = 0.55 + def.size * 0.55;
+    var mat = new THREE.MeshStandardMaterial({
+      map: textures[def.id],
+      roughness: 0.82, metalness: 0.08,
+      emissive: new THREE.Color(def.color), emissiveIntensity: 0.03
+    });
+    var mesh = new THREE.Mesh(new THREE.SphereGeometry(meshSize, 48, 48), mat);
+    group.add(mesh);
+
+    if (def.clouds && textures[def.id + '_clouds']) {
+      var clouds = new THREE.Mesh(
+        new THREE.SphereGeometry(meshSize * 1.02, 48, 48),
+        new THREE.MeshStandardMaterial({
+          map: textures[def.id + '_clouds'],
+          transparent: true, opacity: 0.55, depthWrite: false
+        })
+      );
+      clouds.userData.isClouds = true;
+      group.add(clouds);
+    }
+
+    if (def.rings && textures.saturn_ring) {
+      var ring = new THREE.Mesh(
+        new THREE.RingGeometry(meshSize * 1.35, meshSize * 2.1, 96),
+        new THREE.MeshBasicMaterial({
+          map: textures.saturn_ring,
+          side: THREE.DoubleSide, transparent: true, opacity: 0.85,
+          alphaMap: textures.saturn_ring, depthWrite: false
+        })
+      );
+      ring.rotation.x = Math.PI / 2.2;
+      group.add(ring);
+    }
+
+    var tilt = (idx % 5) * 0.18 - 0.35;
+    group.userData = {
+      def: def, angle: (idx / BODIES.length) * Math.PI * 2,
+      orbit: def.orbit, speed: def.speed, tilt: tilt, mesh: mesh, spin: 0.3 + idx * 0.07
+    };
+
+    var orbitPts = [];
+    for (var s = 0; s <= 128; s++) {
+      var a = (s / 128) * Math.PI * 2;
+      orbitPts.push(
+        def.orbit * Math.cos(a),
+        def.orbit * Math.sin(a) * Math.cos(tilt),
+        def.orbit * Math.sin(a) * Math.sin(tilt)
+      );
+    }
+    var orbitGeo = new THREE.BufferGeometry();
+    orbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(orbitPts, 3));
+    var orbitLine = new THREE.Line(orbitGeo, new THREE.LineBasicMaterial({
+      color: 0x4fd6e0, transparent: true, opacity: 0.22
+    }));
+    scene.add(orbitLine);
+    orbitLines.push(orbitLine);
+
+    var label = makeLabel(def.name);
+    label.position.set(0, meshSize + 0.6, 0);
+    group.add(label);
+    labelObjs.push(label);
+
+    scene.add(group);
+    planets.push(group);
   });
-  var mesh = new THREE.Mesh(new THREE.SphereGeometry(meshSize, 48, 48), mat);
-  group.add(mesh);
 
-  if (def.rings) {
-    var ring = new THREE.Mesh(
-      new THREE.RingGeometry(meshSize * 1.35, meshSize * 2.1, 96),
-      new THREE.MeshBasicMaterial({ color: 0xdcc99a, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
-    );
-    ring.rotation.x = Math.PI / 2.2;
-    group.add(ring);
+  var earth = planets[2];
+  if (earth) {
+    var moonMat = textures.moon
+      ? new THREE.MeshStandardMaterial({ map: textures.moon, roughness: 1 })
+      : new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 });
+    var moon = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), moonMat);
+    moon.userData.orbit = 1.6;
+    moon.userData.speed = 3.5;
+    moon.userData.angle = 0;
+    earth.add(moon);
   }
-
-  var halo = new THREE.Mesh(
-    new THREE.SphereGeometry(meshSize * 1.35, 24, 24),
-    new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: 0.07 })
-  );
-  group.add(halo);
-
-  var tilt = (idx % 5) * 0.18 - 0.35;
-  group.userData = {
-    def: def, angle: (idx / BODIES.length) * Math.PI * 2,
-    orbit: def.orbit, speed: def.speed, tilt: tilt, mesh: mesh, spin: 0.3 + idx * 0.07
-  };
-
-  var orbitPts = [];
-  for (var s = 0; s <= 128; s++) {
-    var a = (s / 128) * Math.PI * 2;
-    orbitPts.push(
-      def.orbit * Math.cos(a),
-      def.orbit * Math.sin(a) * Math.cos(tilt),
-      def.orbit * Math.sin(a) * Math.sin(tilt)
-    );
-  }
-  var orbitGeo = new THREE.BufferGeometry();
-  orbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(orbitPts, 3));
-  var orbitLine = new THREE.Line(orbitGeo, new THREE.LineBasicMaterial({
-    color: 0x4fd6e0, transparent: true, opacity: 0.22
-  }));
-  scene.add(orbitLine);
-  orbitLines.push(orbitLine);
-
-  scene.add(group);
-  planets.push(group);
-});
-
-// Earth moon
-var earth = planets[2];
-if (earth) {
-  var moon = new THREE.Mesh(
-    new THREE.SphereGeometry(0.22, 24, 24),
-    new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 })
-  );
-  moon.userData.orbit = 1.6;
-  moon.userData.speed = 3.5;
-  moon.userData.angle = 0;
-  earth.add(moon);
 }
 
 // ---- interaction --------------------------------------------------------
@@ -257,7 +270,8 @@ var drag = { active: false, lx: 0, ly: 0 };
 var camTheta = 0.9, camPhi = 0.55, camDist = 58, camTarget = new THREE.Vector3();
 
 function pickables() {
-  var list = [sunCore, sunGlow];
+  var list = [];
+  if (sunCore) list.push(sunCore, sunGlow);
   planets.forEach(function (g) { list.push(g.userData.mesh); });
   return list;
 }
@@ -342,7 +356,10 @@ bind('showOrbits', 'change', function (e) {
   state.showOrbits = e.target.checked;
   orbitLines.forEach(function (l) { l.visible = state.showOrbits; });
 });
-bind('showLabels', 'change', function (e) { state.showLabels = e.target.checked; });
+bind('showLabels', 'change', function (e) {
+  state.showLabels = e.target.checked;
+  labelObjs.forEach(function (l) { l.visible = state.showLabels; });
+});
 bind('timeScale', 'input', function (e) {
   state.timeScale = 0.05 + (+e.target.value / 100) * 2.5;
   document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
@@ -356,6 +373,7 @@ window.addEventListener('resize', function () {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  labelRenderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 // ---- animate ------------------------------------------------------------
@@ -375,10 +393,12 @@ function animate() {
   requestAnimationFrame(animate);
   var dt = Math.min(clock.getDelta(), 0.05) * state.timeScale;
 
-  sunGroup.rotation.y += dt * 0.08;
-  var pulse = 1 + 0.04 * Math.sin(clock.elapsedTime * 1.4);
-  sunGlow.scale.setScalar(pulse);
-  sunCorona.scale.setScalar(1 + 0.06 * Math.sin(clock.elapsedTime * 0.9));
+  if (sunGroup.children.length) {
+    sunGroup.rotation.y += dt * 0.08;
+    var pulse = 1 + 0.04 * Math.sin(clock.elapsedTime * 1.4);
+    if (sunGlow) sunGlow.scale.setScalar(pulse);
+    if (sunCorona) sunCorona.scale.setScalar(1 + 0.06 * Math.sin(clock.elapsedTime * 0.9));
+  }
 
   planets.forEach(function (g) {
     var d = g.userData;
@@ -390,6 +410,7 @@ function animate() {
     );
     d.mesh.rotation.y += dt * d.spin;
     g.children.forEach(function (ch) {
+      if (ch.userData && ch.userData.isClouds) ch.rotation.y += dt * 0.06;
       if (ch.userData && ch.userData.orbit) {
         ch.userData.angle += dt * ch.userData.speed * 0.4;
         ch.position.set(
@@ -403,6 +424,7 @@ function animate() {
 
   updateCamera();
   renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
 
   fpsFrames++;
   var now = performance.now();
@@ -412,7 +434,31 @@ function animate() {
   }
 }
 
-buildLegend();
-setSelected('sun');
-document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
-animate();
+async function boot() {
+  try {
+    var urls = { sun: TEXTURES.sun, saturn_ring: TEXTURES.saturnRing, moon: TEXTURES.moon };
+    BODIES.forEach(function (b) {
+      urls[b.id] = b.map;
+      if (b.clouds) urls[b.id + '_clouds'] = b.clouds;
+    });
+    var keys = Object.keys(urls);
+    var loaded = await Promise.all(keys.map(function (k) {
+      return loadTex(urls[k]).then(function (t) { return [k, prepTex(t)]; });
+    }));
+    var textures = {};
+    loaded.forEach(function (pair) { textures[pair[0]] = pair[1]; });
+
+    buildScene(textures);
+    buildLegend();
+    setSelected('sun');
+    document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
+    if (loadingEl) loadingEl.classList.add('hidden');
+    animate();
+  } catch (e) {
+    if (loadingEl) loadingEl.classList.add('hidden');
+    fail('Planet textures failed to load. Check your connection and hard-refresh (Ctrl+Shift+R).');
+    console.error(e);
+  }
+}
+
+boot();

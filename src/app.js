@@ -19,9 +19,56 @@ var state = {
   autoOrbit: true,
   showOrbits: true,
   showLabels: true,
-  timeScale: 1.0,
+  daysPerSecond: 9,
   selected: 'sun'
 };
+
+var EARTH_YEAR_DAYS = 365.25;
+
+function daysPerSecondFromSlider(val) {
+  return 0.25 + (val / 100) * 24.75;
+}
+
+function formatSimSpeed(daysPerSec) {
+  if (daysPerSec < 1) {
+    var hrs = daysPerSec * 24;
+    if (hrs < 1) return '1 sec = ' + Math.round(daysPerSec * 24 * 60) + ' min';
+    return '1 sec = ' + hrs.toFixed(1) + ' hours';
+  }
+  if (daysPerSec < 45) return '1 sec = ' + daysPerSec.toFixed(1) + ' Earth days';
+  var months = daysPerSec / 30.44;
+  if (months < 18) return '1 sec = ' + months.toFixed(1) + ' months';
+  return '1 sec = ' + (daysPerSec / EARTH_YEAR_DAYS).toFixed(2) + ' years';
+}
+
+function updateTimeScaleUI() {
+  var label = formatSimSpeed(state.daysPerSecond);
+  var stat = document.getElementById('stat-scale');
+  var panel = document.getElementById('timeScaleLabel');
+  var earthHint = document.getElementById('timeScaleEarth');
+  if (stat) stat.textContent = label;
+  if (panel) panel.textContent = label;
+  if (earthHint) {
+    var yearSec = EARTH_YEAR_DAYS / state.daysPerSecond;
+    var spinSec = 1 / state.daysPerSecond;
+    var yearLabel = yearSec >= 60 ? (yearSec / 60).toFixed(1) + ' min' : yearSec.toFixed(0) + ' sec';
+    var spinLabel = spinSec >= 1 ? spinSec.toFixed(1) + ' sec' : (spinSec * 1000).toFixed(0) + ' ms';
+    earthHint.textContent = 'Earth year ≈ ' + yearLabel + ' · 1 Earth day (1 spin) ≈ ' + spinLabel;
+  }
+}
+
+function simDays(dt) {
+  return dt * state.daysPerSecond;
+}
+
+function advanceOrbit(angle, periodDays, dt) {
+  return angle + (simDays(dt) / periodDays) * Math.PI * 2;
+}
+
+function advanceSpin(rotation, rotDays, dt, retrograde) {
+  var delta = (simDays(dt) / rotDays) * Math.PI * 2;
+  return rotation + (retrograde ? -delta : delta);
+}
 
 // Bundled same-origin (Solar System Scope 2K maps) — external CDN blocks WebGL CORS.
 var TEXTURE_BASE = 'assets/textures/';
@@ -42,14 +89,16 @@ var TEXTURES = {
 
 var BODIES = [
   {
-    id: 'mercury', name: 'Mercury', color: '#b5b5b5', size: 0.38, orbit: 10, speed: 4.15,
+    id: 'mercury', name: 'Mercury', color: '#b5b5b5', size: 0.38, orbit: 10,
+    periodDays: 88, rotDays: 58.6,
     axialTilt: 0.03, roughness: 0.95, metalness: 0.02, bumpScale: 0.35,
     desc: 'The swift inner world — scorched, cratered, and closest to the Sun.',
     facts: { 'Day length': '59 Earth days', 'Year': '88 Earth days', 'Moons': '0' },
     map: TEXTURES.mercury
   },
   {
-    id: 'venus', name: 'Venus', color: '#e8cda0', size: 0.95, orbit: 14, speed: 1.62,
+    id: 'venus', name: 'Venus', color: '#e8cda0', size: 0.95, orbit: 14,
+    periodDays: 225, rotDays: 243, retrograde: true,
     axialTilt: 3.05, roughness: 0.82, metalness: 0.04, bumpScale: 0.12,
     atmosphere: { color: 0xffd9a0, scale: 1.06, opacity: 0.22 },
     desc: "A brilliant sulfuric haze world — Earth's twin in size, opposite in temperament.",
@@ -57,7 +106,8 @@ var BODIES = [
     map: TEXTURES.venus
   },
   {
-    id: 'earth', name: 'Earth', color: '#4a9eff', size: 1.0, orbit: 18, speed: 1.0,
+    id: 'earth', name: 'Earth', color: '#4a9eff', size: 1.0, orbit: 18,
+    periodDays: 365.25, rotDays: 1,
     axialTilt: 0.41, roughness: 0.72, metalness: 0.05, bumpScale: 0.18,
     atmosphere: { color: 0x5eb6ff, scale: 1.08, opacity: 0.28 },
     desc: 'Our home — blue oceans, white clouds, and the only known harbor of life.',
@@ -65,7 +115,8 @@ var BODIES = [
     map: TEXTURES.earth, clouds: TEXTURES.earthClouds
   },
   {
-    id: 'mars', name: 'Mars', color: '#c1440e', size: 0.53, orbit: 23, speed: 0.53,
+    id: 'mars', name: 'Mars', color: '#c1440e', size: 0.53, orbit: 23,
+    periodDays: 687, rotDays: 1.03,
     axialTilt: 0.44, roughness: 0.9, metalness: 0.03, bumpScale: 0.28,
     atmosphere: { color: 0xff8866, scale: 1.04, opacity: 0.1 },
     desc: "The red frontier — dust storms, polar ice, and humanity's next horizon.",
@@ -73,28 +124,32 @@ var BODIES = [
     map: TEXTURES.mars
   },
   {
-    id: 'jupiter', name: 'Jupiter', color: '#d4a574', size: 2.8, orbit: 32, speed: 0.084,
+    id: 'jupiter', name: 'Jupiter', color: '#d4a574', size: 2.8, orbit: 32,
+    periodDays: 4333, rotDays: 0.41,
     axialTilt: 0.055, roughness: 0.65, metalness: 0.08, bumpScale: 0.08, segments: 64,
     desc: 'The giant king — banded storms and a magnetosphere that shapes the outer system.',
     facts: { 'Day length': '9.9 hours', 'Year': '12 Earth years', 'Moons': '95+' },
     map: TEXTURES.jupiter
   },
   {
-    id: 'saturn', name: 'Saturn', color: '#f0d9a8', size: 2.35, orbit: 42, speed: 0.034,
+    id: 'saturn', name: 'Saturn', color: '#f0d9a8', size: 2.35, orbit: 42,
+    periodDays: 10759, rotDays: 0.45,
     axialTilt: 0.466, roughness: 0.7, metalness: 0.06, bumpScale: 0.06, segments: 64,
     desc: 'The ringed jewel — ice and rock in a halo that defines the solar aesthetic.',
     facts: { 'Day length': '10.7 hours', 'Year': '29 Earth years', 'Moons': '146+' },
     map: TEXTURES.saturn, rings: true, ringMap: TEXTURES.saturnRing
   },
   {
-    id: 'uranus', name: 'Uranus', color: '#7de3f4', size: 1.6, orbit: 52, speed: 0.012,
+    id: 'uranus', name: 'Uranus', color: '#7de3f4', size: 1.6, orbit: 52,
+    periodDays: 30688, rotDays: 0.72,
     axialTilt: 1.71, roughness: 0.58, metalness: 0.1, bumpScale: 0.05,
     desc: 'The tilted ice giant — rolling on its side through a pale cyan haze.',
     facts: { 'Day length': '17 hours', 'Year': '84 Earth years', 'Moons': '28' },
     map: TEXTURES.uranus
   },
   {
-    id: 'neptune', name: 'Neptune', color: '#3d5afe', size: 1.55, orbit: 60, speed: 0.006,
+    id: 'neptune', name: 'Neptune', color: '#3d5afe', size: 1.55, orbit: 60,
+    periodDays: 60182, rotDays: 0.67,
     axialTilt: 0.49, roughness: 0.55, metalness: 0.1, bumpScale: 0.05,
     atmosphere: { color: 0x4466ff, scale: 1.05, opacity: 0.14 },
     desc: 'The deep blue sentinel — supersonic winds at the edge of our planetary family.',
@@ -104,10 +159,13 @@ var BODIES = [
 ];
 
 var SUN = {
-  id: 'sun', name: 'Sun', color: '#ffd54f',
+  id: 'sun', name: 'Sun', color: '#ffd54f', rotDays: 25,
   desc: 'The engine of the system — fusion fire, light, and gravity holding every world in dance.',
   facts: { 'Type': 'G-type main sequence', 'Age': '~4.6 billion years', 'Planets': '8' }
 };
+
+var MOON_ORBIT_DAYS = 27.3;
+var MOON_ROT_DAYS = 27.3;
 
 var MOON = {
   id: 'moon', name: 'Moon', color: '#c8ccd8',
@@ -307,8 +365,7 @@ function buildScene(textures) {
     group.userData = {
       def: def,
       angle: Math.PI + idx * 0.62,
-      orbit: def.orbit, speed: def.speed, tilt: tilt, mesh: mesh, body: body,
-      spin: 0.3 + idx * 0.07
+      orbit: def.orbit, tilt: tilt, mesh: mesh, body: body, rotation: 0
     };
 
     var orbitPts = [];
@@ -353,8 +410,9 @@ function buildScene(textures) {
         });
     moonMesh = new THREE.Mesh(new THREE.SphereGeometry(earthSize * 0.28, 36, 36), moonMat);
     moonMesh.userData.orbit = moonOrbit;
-    moonMesh.userData.speed = 3.5;
+    moonMesh.userData.orbitDays = MOON_ORBIT_DAYS;
     moonMesh.userData.angle = 0;
+    moonMesh.userData.rotation = 0;
     moonMesh.userData.isMoon = true;
     earth.userData.body.add(moonMesh);
 
@@ -515,8 +573,8 @@ bind('showLabels', 'change', function (e) {
   labelObjs.forEach(function (l) { l.visible = state.showLabels; });
 });
 bind('timeScale', 'input', function (e) {
-  state.timeScale = 0.05 + (+e.target.value / 100) * 2.5;
-  document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
+  state.daysPerSecond = daysPerSecondFromSlider(+e.target.value);
+  updateTimeScaleUI();
 });
 bind('resetCam', 'click', function () {
   camTheta = 0.75; camPhi = 0.42; camDist = 58; camTarget.set(0, 0, 0);
@@ -550,10 +608,10 @@ function updateCamera() {
 
 function animate() {
   requestAnimationFrame(animate);
-  var dt = Math.min(clock.getDelta(), 0.05) * state.timeScale;
+  var dt = Math.min(clock.getDelta(), 0.05);
 
   if (sunGroup.children.length) {
-    sunCore.rotation.y += dt * 0.05;
+    sunCore.rotation.y = advanceSpin(sunCore.rotation.y, SUN.rotDays, dt, false);
     var pulse = 1 + 0.025 * Math.sin(clock.elapsedTime * 1.1);
     if (sunGlow) sunGlow.scale.setScalar(pulse);
     if (sunCorona) sunCorona.scale.setScalar(1 + 0.035 * Math.sin(clock.elapsedTime * 0.7));
@@ -561,19 +619,26 @@ function animate() {
 
   planets.forEach(function (g) {
     var d = g.userData;
-    d.angle += dt * d.speed * 0.12;
+    d.angle = advanceOrbit(d.angle, d.def.periodDays, dt);
     g.position.set(
       d.orbit * Math.cos(d.angle),
       d.orbit * Math.sin(d.angle) * Math.cos(d.tilt),
       d.orbit * Math.sin(d.angle) * Math.sin(d.tilt)
     );
-    if (d.body) d.body.rotation.y += dt * d.spin;
-    else d.mesh.rotation.y += dt * d.spin;
+    if (d.body) {
+      d.body.rotation.y = advanceSpin(d.body.rotation.y, d.def.rotDays, dt, d.def.retrograde);
+    } else {
+      d.mesh.rotation.y = advanceSpin(d.mesh.rotation.y, d.def.rotDays, dt, d.def.retrograde);
+    }
     var spinTarget = d.body || g;
     spinTarget.children.forEach(function (ch) {
-      if (ch.userData && ch.userData.isClouds) ch.rotation.y += dt * 0.06;
+      if (ch.userData && ch.userData.isClouds) {
+        ch.rotation.y = advanceSpin(ch.rotation.y, d.def.rotDays * 0.55, dt, false);
+      }
       if (ch.userData && ch.userData.orbit) {
-        ch.userData.angle += dt * ch.userData.speed * 0.4;
+        ch.userData.angle = advanceOrbit(ch.userData.angle, ch.userData.orbitDays, dt);
+        ch.rotation.y = advanceSpin(ch.userData.rotation || 0, MOON_ROT_DAYS, dt, false);
+        ch.userData.rotation = ch.rotation.y;
         ch.position.set(
           Math.cos(ch.userData.angle) * ch.userData.orbit,
           0,
@@ -615,7 +680,8 @@ async function boot() {
     buildScene(textures);
     buildLegend();
     setSelected('sun');
-    document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
+    state.daysPerSecond = daysPerSecondFromSlider(35);
+    updateTimeScaleUI();
     if (loadingEl) {
       setTimeout(function () { loadingEl.classList.add('hidden'); }, 400);
     }

@@ -8,7 +8,8 @@
   "private": true,
   "scripts": {
     "start": "npx serve .",
-    "readme:i18n": "node scripts/generate-readme-i18n-assets.mjs"
+    "readme:i18n": "node scripts/generate-readme-i18n-assets.mjs",
+    "textures:download": "node scripts/download-textures.mjs"
   },
   "keywords": ["three.js", "solar-system", "planets", "visualization", "webgl", "astronomy"]
 }

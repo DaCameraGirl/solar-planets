@@ -10,19 +10,25 @@
 </head>
 <body>
   <div id="view"></div>
+  <div class="premiere-vignette" aria-hidden="true"></div>
+  <div class="premiere-grain" aria-hidden="true"></div>
+
   <div id="loading" aria-live="polite">
-    <div class="loading-card">
-      <div class="loading-orbit" aria-hidden="true"></div>
-      <p>Loading solar system textures&hellip;</p>
+    <div class="premiere-loading-inner">
+      <div class="premiere-ring" aria-hidden="true"></div>
+      <p class="premiere-eyebrow">Enterprise Observatory</p>
+      <p class="premiere-title">Composing the solar system</p>
+      <p id="loadingStatus" class="premiere-status">Loading planetary textures&hellip;</p>
     </div>
   </div>
   <div id="error" role="alert"></div>
 
   <header id="brand">
     <div class="logo" aria-hidden="true"></div>
-    <div>
+    <div class="brand-text">
+      <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> Live · Cinematic</p>
       <h1>Solar Planets</h1>
-      <p>Our solar system — as a place you can orbit.</p>
+      <p>Real worlds, theatrical orbit — the Sun and every planet in luminous 3D.</p>
     </div>
   </header>
 
@@ -47,8 +53,8 @@
   </aside>
 
   <footer id="hud">
-    <div id="legend"></div>
-    <div id="stats">
+    <div id="legend" class="glass-bar"></div>
+    <div id="stats" class="glass-bar">
       <span><strong id="stat-bodies">9</strong> bodies</span>
       <span><strong id="stat-fps">0</strong> fps</span>
       <span id="stat-scale">time ×1.0</span>

@@ -109,6 +109,17 @@ var SUN = {
   facts: { 'Type': 'G-type main sequence', 'Age': '~4.6 billion years', 'Planets': '8' }
 };
 
+var MOON = {
+  id: 'moon', name: 'Moon', color: '#c8ccd8',
+  desc: "Earth's companion — not a planet, but our nearest world in space. Gray, cratered, and tidally locked.",
+  facts: {
+    'Type': 'Natural satellite (not a planet)',
+    'Orbits': 'Earth',
+    'Day length': '27.3 Earth days',
+    'Distance': '~384,400 km from Earth'
+  }
+};
+
 var loader = new THREE.TextureLoader();
 function loadTex(url) {
   return new Promise(function (resolve, reject) {
@@ -180,6 +191,7 @@ var sunCore, sunGlow, sunCorona;
 var planets = [];
 var orbitLines = [];
 var labelObjs = [];
+var moonMesh = null;
 
 function makeLabel(text) {
   var el = document.createElement('div');
@@ -322,16 +334,42 @@ function buildScene(textures) {
 
   var earth = planets[2];
   if (earth && earth.userData.body) {
+    var earthSize = 0.55 + BODIES[2].size * 0.55;
+    var moonOrbit = earthSize * 2.4;
     var moonTex = textures.moon;
     var moonMat = moonTex
-      ? new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.2 })
+      ? new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.25 })
       : new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 });
-    var moon = new THREE.Mesh(new THREE.SphereGeometry(0.22, 32, 32), moonMat);
-    moon.userData.orbit = 1.6;
-    moon.userData.speed = 3.5;
-    moon.userData.angle = 0;
-    earth.userData.body.add(moon);
+    moonMesh = new THREE.Mesh(new THREE.SphereGeometry(earthSize * 0.28, 36, 36), moonMat);
+    moonMesh.userData.orbit = moonOrbit;
+    moonMesh.userData.speed = 3.5;
+    moonMesh.userData.angle = 0;
+    moonMesh.userData.isMoon = true;
+    earth.userData.body.add(moonMesh);
+
+    var moonLabel = makeLabel('Moon');
+    moonLabel.position.set(0, earthSize * 0.34, 0);
+    moonMesh.add(moonLabel);
+    labelObjs.push(moonLabel);
+
+    var moonOrbitPts = [];
+    for (var m = 0; m <= 96; m++) {
+      var ma = (m / 96) * Math.PI * 2;
+      moonOrbitPts.push(
+        moonOrbit * Math.cos(ma), 0, moonOrbit * Math.sin(ma)
+      );
+    }
+    var moonOrbitGeo = new THREE.BufferGeometry();
+    moonOrbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(moonOrbitPts, 3));
+    var moonOrbitLine = new THREE.Line(moonOrbitGeo, new THREE.LineBasicMaterial({
+      color: 0x8899bb, transparent: true, opacity: 0.2
+    }));
+    moonOrbitLine.userData.isMoonOrbit = true;
+    earth.userData.body.add(moonOrbitLine);
   }
+
+  var statBodies = document.getElementById('stat-bodies');
+  if (statBodies) statBodies.textContent = String(9 + (moonMesh ? 1 : 0));
 }
 
 // ---- interaction --------------------------------------------------------
@@ -344,12 +382,21 @@ function pickables() {
   var list = [];
   if (sunCore) list.push(sunCore, sunGlow);
   planets.forEach(function (g) { list.push(g.userData.mesh); });
+  if (moonMesh) list.push(moonMesh);
   return list;
+}
+
+function snapCameraToTarget() {
+  var x = camTarget.x + camDist * Math.sin(camPhi) * Math.cos(camTheta);
+  var y = camTarget.y + camDist * Math.cos(camPhi);
+  var z = camTarget.z + camDist * Math.sin(camPhi) * Math.sin(camTheta);
+  camera.position.set(x, y, z);
+  camera.lookAt(camTarget);
 }
 
 function setSelected(id) {
   state.selected = id;
-  var info = id === 'sun' ? SUN : BODIES.find(function (b) { return b.id === id; });
+  var info = id === 'sun' ? SUN : id === 'moon' ? MOON : BODIES.find(function (b) { return b.id === id; });
   if (!info) return;
   document.getElementById('infoName').textContent = info.name;
   document.getElementById('infoDesc').textContent = info.desc;
@@ -364,20 +411,38 @@ function setSelected(id) {
 }
 
 function focusBody(id) {
+  if (id === 'sun') {
+    setSelected('sun');
+    camTarget.set(0, 0, 0);
+    camDist = 50;
+    camPhi = 0.48;
+    snapCameraToTarget();
+    return;
+  }
+  if (id === 'moon' && moonMesh) {
+    setSelected('moon');
+    moonMesh.getWorldPosition(camTarget);
+    camDist = 10;
+    camPhi = 0.55;
+    snapCameraToTarget();
+    return;
+  }
   setSelected(id);
-  if (id === 'sun') camTarget.set(0, 0, 0);
-  else {
-    var g = planets.find(function (p) { return p.userData.def.id === id; });
-    if (g) camTarget.copy(g.position);
+  var g = planets.find(function (p) { return p.userData.def.id === id; });
+  if (g) {
+    camTarget.copy(g.position);
+    camDist = Math.max(16, 12 + g.userData.def.size * 6);
+    snapCameraToTarget();
   }
 }
 
 function buildLegend() {
   var box = document.getElementById('legend');
   box.innerHTML = '';
-  [{ id: 'sun', name: 'Sun', color: '#ffd54f' }].concat(BODIES.map(function (b) {
-    return { id: b.id, name: b.name, color: b.color };
-  })).forEach(function (item) {
+  [{ id: 'sun', name: 'Sun', color: '#ffd54f' }]
+    .concat(BODIES.map(function (b) { return { id: b.id, name: b.name, color: b.color }; }))
+    .concat(moonMesh ? [{ id: 'moon', name: 'Moon', color: '#c8ccd8' }] : [])
+    .forEach(function (item) {
     var chip = document.createElement('div');
     chip.className = 'legend-chip' + (item.id === state.selected ? ' active' : '');
     chip.dataset.id = item.id;
@@ -402,6 +467,7 @@ window.addEventListener('pointerup', function (e) {
   if (!hits.length) return;
   var obj = hits[0].object;
   if (obj === sunCore || obj === sunGlow) focusBody('sun');
+  else if (obj === moonMesh) focusBody('moon');
   else {
     var g = planets.find(function (p) { return p.userData.mesh === obj; });
     if (g) focusBody(g.userData.def.id);
@@ -426,6 +492,12 @@ bind('autoOrbit', 'change', function (e) { state.autoOrbit = e.target.checked; }
 bind('showOrbits', 'change', function (e) {
   state.showOrbits = e.target.checked;
   orbitLines.forEach(function (l) { l.visible = state.showOrbits; });
+  planets.forEach(function (g) {
+    if (!g.userData.body) return;
+    g.userData.body.children.forEach(function (ch) {
+      if (ch.userData && ch.userData.isMoonOrbit) ch.visible = state.showOrbits;
+    });
+  });
 });
 bind('showLabels', 'change', function (e) {
   state.showLabels = e.target.checked;
@@ -439,6 +511,8 @@ bind('resetCam', 'click', function () {
   camTheta = 0.9; camPhi = 0.55; camDist = 58; camTarget.set(0, 0, 0);
 });
 bind('focusSun', 'click', function () { focusBody('sun'); });
+bind('focusEarth', 'click', function () { focusBody('earth'); });
+bind('focusMoon', 'click', function () { focusBody('moon'); });
 
 window.addEventListener('resize', function () {
   camera.aspect = window.innerWidth / window.innerHeight;

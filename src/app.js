@@ -140,7 +140,7 @@ var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMappingExposure = 1.28;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 container.appendChild(renderer.domElement);
 
@@ -160,8 +160,9 @@ labelRenderer.domElement.style.pointerEvents = 'none';
 container.appendChild(labelRenderer.domElement);
 
 // ---- lights & stars -----------------------------------------------------
-scene.add(new THREE.AmbientLight(0x0a1020, 0.06));
-var sunLight = new THREE.PointLight(0xfff4d6, 5.8, 280, 2);
+scene.add(new THREE.AmbientLight(0x2a3558, 0.14));
+scene.add(new THREE.HemisphereLight(0x9ec8ff, 0x1a1428, 0.32));
+var sunLight = new THREE.PointLight(0xfff4d6, 4.8, 280, 2);
 var starGeo = new THREE.BufferGeometry();
 var starCount = 5200;
 var starPos = new Float32Array(starCount * 3);
@@ -220,10 +221,13 @@ function addAtmosphere(parent, radius, cfg) {
 function planetMaterial(def, tex) {
   var mat = new THREE.MeshStandardMaterial({
     map: tex,
+    color: 0xffffff,
     roughness: def.roughness != null ? def.roughness : 0.75,
     metalness: def.metalness != null ? def.metalness : 0.05,
     bumpMap: tex,
-    bumpScale: def.bumpScale != null ? def.bumpScale : 0.15
+    bumpScale: def.bumpScale != null ? def.bumpScale : 0.15,
+    emissive: new THREE.Color(def.color),
+    emissiveIntensity: def.emissive != null ? def.emissive : 0.11
   });
   return mat;
 }
@@ -301,7 +305,8 @@ function buildScene(textures) {
 
     var tilt = (idx % 5) * 0.12 - 0.22;
     group.userData = {
-      def: def, angle: (idx / BODIES.length) * Math.PI * 2,
+      def: def,
+      angle: Math.PI + idx * 0.62,
       orbit: def.orbit, speed: def.speed, tilt: tilt, mesh: mesh, body: body,
       spin: 0.3 + idx * 0.07
     };
@@ -338,8 +343,14 @@ function buildScene(textures) {
     var moonOrbit = earthSize * 2.4;
     var moonTex = textures.moon;
     var moonMat = moonTex
-      ? new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.25 })
-      : new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 });
+      ? new THREE.MeshStandardMaterial({
+          map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.25,
+          emissive: new THREE.Color(MOON.color), emissiveIntensity: 0.09
+        })
+      : new THREE.MeshStandardMaterial({
+          color: 0xcccccc, roughness: 1,
+          emissive: new THREE.Color(MOON.color), emissiveIntensity: 0.09
+        });
     moonMesh = new THREE.Mesh(new THREE.SphereGeometry(earthSize * 0.28, 36, 36), moonMat);
     moonMesh.userData.orbit = moonOrbit;
     moonMesh.userData.speed = 3.5;
@@ -376,7 +387,7 @@ function buildScene(textures) {
 var raycaster = new THREE.Raycaster();
 var pointer = new THREE.Vector2();
 var drag = { active: false, lx: 0, ly: 0 };
-var camTheta = 0.9, camPhi = 0.55, camDist = 58, camTarget = new THREE.Vector3();
+var camTheta = 0.75, camPhi = 0.42, camDist = 58, camTarget = new THREE.Vector3();
 
 function pickables() {
   var list = [];
@@ -508,7 +519,8 @@ bind('timeScale', 'input', function (e) {
   document.getElementById('stat-scale').textContent = 'time ×' + state.timeScale.toFixed(1);
 });
 bind('resetCam', 'click', function () {
-  camTheta = 0.9; camPhi = 0.55; camDist = 58; camTarget.set(0, 0, 0);
+  camTheta = 0.75; camPhi = 0.42; camDist = 58; camTarget.set(0, 0, 0);
+  snapCameraToTarget();
 });
 bind('focusSun', 'click', function () { focusBody('sun'); });
 bind('focusEarth', 'click', function () { focusBody('earth'); });

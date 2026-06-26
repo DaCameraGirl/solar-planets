@@ -16,10 +16,12 @@ if (!container) { fail('Missing #view container'); throw new Error('no view'); }
 var loadingEl = document.getElementById('loading');
 
 var state = {
-  autoOrbit: true,
+  autoOrbit: false,
   showOrbits: true,
   showLabels: true,
   dayNightCycle: true,
+  planetSpin: false,
+  planetOrbit: false,
   daysPerSecond: 9,
   selected: 'sun'
 };
@@ -131,7 +133,8 @@ var BODIES = [
     atmosphere: { color: 0x5eb6ff, scale: 1.08, opacity: 0.28 },
     desc: 'Our home — blue oceans, white clouds, and the only known harbor of life.',
     facts: { 'Day length': '24 hours', 'Year': '365 days', 'Moons': '1 (Luna)' },
-    map: TEXTURES.earth, clouds: TEXTURES.earthClouds
+    map: TEXTURES.earth, clouds: TEXTURES.earthClouds,
+    globeLon: Math.PI * 1.08
   },
   {
     id: 'mars', name: 'Mars', color: '#c1440e', size: 0.53, orbit: 23,
@@ -398,7 +401,7 @@ var SKY_FRAG = [
 
 // ---- renderer -----------------------------------------------------------
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 500);
+var camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.02, 500);
 camera.position.set(0, 28, 52);
 
 var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -602,9 +605,10 @@ function buildScene(textures) {
   BODIES.forEach(function (def, idx) {
     var group = new THREE.Group();
     var meshSize = 0.55 + def.size * 0.55;
-    var segs = def.segments || 56;
+    var segs = def.segments || (def.id === 'earth' ? 72 : 56);
     var body = new THREE.Group();
     body.rotation.x = def.axialTilt || 0;
+    if (def.globeLon != null) body.rotation.y = def.globeLon;
     var surfaceMat = (def.id === 'earth' && textures.earth_night)
       ? earthDayNightMaterial(textures.earth, textures.earth_night)
       : planetMaterial(def, textures[def.id]);
@@ -715,6 +719,24 @@ var raycaster = new THREE.Raycaster();
 var pointer = new THREE.Vector2();
 var drag = { active: false, lx: 0, ly: 0 };
 var camTheta = 0.75, camPhi = 0.42, camDist = 58, camTarget = new THREE.Vector3();
+var camMinDist = 1.2;
+var camMaxDist = 120;
+
+function bodyRadius(id) {
+  if (id === 'sun') return 3.2;
+  if (id === 'moon' && moonMesh) return moonMesh.geometry.parameters.radius;
+  var def = BODIES.find(function (b) { return b.id === id; });
+  if (!def) return 1;
+  return 0.55 + def.size * 0.55;
+}
+
+function setCamLimits(id) {
+  var r = bodyRadius(id);
+  camMinDist = Math.max(0.12, r * 1.04);
+  camMaxDist = Math.max(90, r * 55);
+  if (camDist < camMinDist) camDist = camMinDist;
+  if (camDist > camMaxDist) camDist = camMaxDist;
+}
 
 function pickables() {
   var list = [];
@@ -750,19 +772,25 @@ function setSelected(id) {
 }
 
 function focusBody(id) {
+  state.autoOrbit = false;
+  var autoEl = document.getElementById('autoOrbit');
+  if (autoEl) autoEl.checked = false;
+
   if (id === 'sun') {
     setSelected('sun');
     camTarget.set(0, 0, 0);
-    camDist = 50;
+    camDist = 14;
     camPhi = 0.48;
+    setCamLimits('sun');
     snapCameraToTarget();
     return;
   }
   if (id === 'moon' && moonMesh) {
     setSelected('moon');
     moonMesh.getWorldPosition(camTarget);
-    camDist = 10;
+    camDist = bodyRadius('moon') * 2.4;
     camPhi = 0.55;
+    setCamLimits('moon');
     snapCameraToTarget();
     return;
   }
@@ -770,9 +798,10 @@ function focusBody(id) {
   var g = planets.find(function (p) { return p.userData.def.id === id; });
   if (g) {
     camTarget.copy(g.position);
-    var meshR = 0.55 + g.userData.def.size * 0.55;
-    camDist = Math.max(meshR * 3.2, 8 + meshR * 2.8);
+    var meshR = bodyRadius(id);
+    camDist = meshR * 2.15;
     camPhi = 0.52;
+    setCamLimits(id);
     snapCameraToTarget();
   }
 }
@@ -822,7 +851,8 @@ window.addEventListener('pointermove', function (e) {
 });
 renderer.domElement.addEventListener('wheel', function (e) {
   e.preventDefault();
-  camDist = Math.max(14, Math.min(120, camDist + e.deltaY * 0.04));
+  var step = Math.max(0.003, camDist * 0.06);
+  camDist = Math.max(camMinDist, Math.min(camMaxDist, camDist + e.deltaY * step * 0.01));
 }, { passive: false });
 
 function bind(id, evt, fn) {
@@ -830,6 +860,8 @@ function bind(id, evt, fn) {
   if (el) el.addEventListener(evt, fn);
 }
 bind('autoOrbit', 'change', function (e) { state.autoOrbit = e.target.checked; });
+bind('planetSpin', 'change', function (e) { state.planetSpin = e.target.checked; });
+bind('planetOrbit', 'change', function (e) { state.planetOrbit = e.target.checked; });
 bind('showOrbits', 'change', function (e) {
   state.showOrbits = e.target.checked;
   orbitLines.forEach(function (l) { l.visible = state.showOrbits; });
@@ -850,6 +882,8 @@ bind('timeScale', 'input', function (e) {
 });
 bind('resetCam', 'click', function () {
   camTheta = 0.75; camPhi = 0.42; camDist = 58; camTarget.set(0, 0, 0);
+  setSelected('sun');
+  setCamLimits('sun');
   snapCameraToTarget();
 });
 bind('focusSun', 'click', function () { focusBody('sun'); });
@@ -917,7 +951,9 @@ function animate() {
   var dt = Math.min(clock.getDelta(), 0.05);
 
   if (sunGroup.children.length) {
-    sunCore.rotation.y = advanceSpin(sunCore.rotation.y, SUN.rotDays, dt, false);
+    if (state.planetSpin) {
+      sunCore.rotation.y = advanceSpin(sunCore.rotation.y, SUN.rotDays, dt, false);
+    }
     var pulse = 1 + 0.025 * Math.sin(clock.elapsedTime * 1.1);
     if (sunGlow) sunGlow.scale.setScalar(pulse);
     if (sunCorona) sunCorona.scale.setScalar(1 + 0.035 * Math.sin(clock.elapsedTime * 0.7));
@@ -925,27 +961,35 @@ function animate() {
 
   planets.forEach(function (g) {
     var d = g.userData;
-    d.angle = advanceOrbit(d.angle, d.def.periodDays, dt);
-    g.position.set(d.orbit * Math.cos(d.angle), 0, d.orbit * Math.sin(d.angle));
-    if (d.body) {
-      d.body.rotation.y = advanceSpin(d.body.rotation.y, d.def.rotDays, dt, d.def.retrograde);
-    } else {
-      d.mesh.rotation.y = advanceSpin(d.mesh.rotation.y, d.def.rotDays, dt, d.def.retrograde);
+    if (state.planetOrbit) {
+      d.angle = advanceOrbit(d.angle, d.def.periodDays, dt);
+      g.position.set(d.orbit * Math.cos(d.angle), 0, d.orbit * Math.sin(d.angle));
+    }
+    if (state.planetSpin) {
+      if (d.body) {
+        d.body.rotation.y = advanceSpin(d.body.rotation.y, d.def.rotDays, dt, d.def.retrograde);
+      } else {
+        d.mesh.rotation.y = advanceSpin(d.mesh.rotation.y, d.def.rotDays, dt, d.def.retrograde);
+      }
     }
     var spinTarget = d.body || g;
     spinTarget.children.forEach(function (ch) {
-      if (ch.userData && ch.userData.isClouds) {
+      if (ch.userData && ch.userData.isClouds && state.planetSpin) {
         ch.rotation.y = advanceSpin(ch.rotation.y, d.def.rotDays * 1.02, dt, false);
       }
       if (ch.userData && ch.userData.orbit) {
-        ch.userData.angle = advanceOrbit(ch.userData.angle, ch.userData.orbitDays, dt);
-        ch.rotation.y = advanceSpin(ch.userData.rotation || 0, MOON_ROT_DAYS, dt, false);
-        ch.userData.rotation = ch.rotation.y;
-        ch.position.set(
-          Math.cos(ch.userData.angle) * ch.userData.orbit,
-          0,
-          Math.sin(ch.userData.angle) * ch.userData.orbit
-        );
+        if (state.planetOrbit) {
+          ch.userData.angle = advanceOrbit(ch.userData.angle, ch.userData.orbitDays, dt);
+          ch.position.set(
+            Math.cos(ch.userData.angle) * ch.userData.orbit,
+            0,
+            Math.sin(ch.userData.angle) * ch.userData.orbit
+          );
+        }
+        if (state.planetSpin) {
+          ch.rotation.y = advanceSpin(ch.userData.rotation || 0, MOON_ROT_DAYS, dt, false);
+          ch.userData.rotation = ch.rotation.y;
+        }
       }
     });
   });
@@ -989,6 +1033,7 @@ async function boot() {
     buildScene(textures);
     buildLegend();
     setSelected('sun');
+    setCamLimits('sun');
     var timeSlider = document.getElementById('timeScale');
     if (timeSlider) timeSlider.value = String(TIME_SLIDER_DEFAULT);
     state.daysPerSecond = daysPerSecondFromSlider(TIME_SLIDER_DEFAULT);

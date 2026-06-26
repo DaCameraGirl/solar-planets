@@ -19,7 +19,7 @@ var state = {
   autoOrbit: false,
   showOrbits: true,
   showLabels: true,
-  dayNightCycle: true,
+  dayNightCycle: false,
   planetSpin: false,
   planetOrbit: false,
   daysPerSecond: 9,
@@ -536,14 +536,14 @@ function addAtmosphere(parent, radius, cfg) {
 
 function addEarthAtmosphere(parent, radius) {
   var shell = new THREE.Mesh(
-    new THREE.SphereGeometry(radius * 1.12, 64, 64),
+    new THREE.SphereGeometry(radius * 1.03, 64, 64),
     new THREE.MeshBasicMaterial({
-      color: 0x5eb6ff,
+      color: 0x6eb8ff,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.07,
       side: THREE.BackSide,
       depthWrite: false,
-      blending: THREE.AdditiveBlending
+      blending: THREE.NormalBlending
     })
   );
   shell.userData.isAtmosphere = true;
@@ -614,8 +614,9 @@ function buildScene(textures) {
         new THREE.MeshBasicMaterial({
           map: textures[def.id + '_clouds'],
           transparent: true,
-          opacity: 0.78,
-          depthWrite: false,
+          opacity: 0.62,
+          depthWrite: true,
+          alphaTest: 0.04,
           color: 0xffffff
         })
       );
@@ -761,9 +762,7 @@ function setSelected(id) {
 }
 
 function focusBody(id) {
-  state.autoOrbit = false;
-  var autoEl = document.getElementById('autoOrbit');
-  if (autoEl) autoEl.checked = false;
+  stopAllMotion();
 
   if (id === 'sun') {
     setSelected('sun');
@@ -865,6 +864,7 @@ bind('dayNightCycle', 'change', function (e) {
   state.dayNightCycle = e.target.checked;
   updateSkyCycle();
 });
+bind('stopMotion', 'click', function () { stopAllMotion(); });
 bind('timeScale', 'input', function (e) {
   state.daysPerSecond = daysPerSecondFromSlider(+e.target.value);
   updateTimeScaleUI();
@@ -901,6 +901,36 @@ function updateCamera() {
   camera.lookAt(camTarget);
 }
 
+function resetEarthGlobePose() {
+  var earth = planets[2];
+  if (!earth || !earth.userData.body) return;
+  var lon = BODIES[2].globeLon;
+  if (lon != null) earth.userData.body.rotation.y = lon;
+}
+
+function syncMotionCheckboxes() {
+  var map = {
+    planetSpin: state.planetSpin,
+    planetOrbit: state.planetOrbit,
+    autoOrbit: state.autoOrbit,
+    dayNightCycle: state.dayNightCycle
+  };
+  Object.keys(map).forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.checked = map[id];
+  });
+}
+
+function stopAllMotion() {
+  state.planetSpin = false;
+  state.planetOrbit = false;
+  state.autoOrbit = false;
+  state.dayNightCycle = false;
+  resetEarthGlobePose();
+  syncMotionCheckboxes();
+  updateSkyCycle();
+}
+
 function updateSkyCycle() {
   if (!skyMat) return;
 
@@ -909,7 +939,7 @@ function updateSkyCycle() {
 
   var dayBlend = 0;
   var earth = planets[2];
-  if (state.dayNightCycle && earth && earth.userData.body) {
+  if (state.dayNightCycle && state.planetSpin && earth && earth.userData.body) {
     var rot = earth.userData.body.rotation.y % (Math.PI * 2);
     dayBlend = Math.cos(rot) * 0.5 + 0.5;
     dayBlend = dayBlend * dayBlend * (3 - 2 * dayBlend);
@@ -960,6 +990,8 @@ function animate() {
       } else {
         d.mesh.rotation.y = advanceSpin(d.mesh.rotation.y, d.def.rotDays, dt, d.def.retrograde);
       }
+    } else if (d.def.id === 'earth' && d.def.globeLon != null && d.body) {
+      d.body.rotation.y = d.def.globeLon;
     }
     var spinTarget = d.body || g;
     spinTarget.children.forEach(function (ch) {

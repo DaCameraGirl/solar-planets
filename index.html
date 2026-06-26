@@ -48,8 +48,11 @@
       <label class="row"><input id="showOrbits" type="checkbox" checked /> Orbit paths</label>
       <p class="hint small">Each orbit matches its planet&rsquo;s legend color. Click a world to highlight its ring.</p>
       <label class="row"><input id="showLabels" type="checkbox" checked /> Planet labels</label>
-      <label class="row"><input id="dayNightCycle" type="checkbox" checked /> Day / night sky cycle</label>
-      <p class="hint small">Real Milky Way photo sky, Earth city lights at night, clouds by day — sky shifts as Earth spins.</p>
+      <label class="row"><input id="dayNightCycle" type="checkbox" /> Day / night sky cycle</label>
+      <p class="hint small">Day/night sky only runs when <strong>Planet spin</strong> is on. Off by default so Earth stays a solid frozen globe.</p>
+      <div class="btnrow">
+        <button id="stopMotion" type="button">Stop all motion</button>
+      </div>
       <label>Sim speed <span id="timeScaleLabel" class="hint">1 Earth day ≈ 45 sec</span>
         <input id="timeScale" type="range" min="0" max="100" value="10" />
       </label>

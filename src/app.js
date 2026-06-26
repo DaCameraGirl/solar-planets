@@ -326,10 +326,41 @@ var planets = [];
 var orbitLines = [];
 var labelObjs = [];
 var moonMesh = null;
+var moonOrbitLine = null;
 
-function makeLabel(text) {
+var ORBIT_OPACITY = { highlight: 0.62, normal: 0.24, dim: 0.07 };
+
+function makeOrbitMaterial(hexColor, opacity) {
+  return new THREE.LineBasicMaterial({
+    color: new THREE.Color(hexColor),
+    transparent: true,
+    opacity: opacity,
+    depthWrite: false
+  });
+}
+
+function updateOrbitHighlight() {
+  if (!state.showOrbits) return;
+  var sel = state.selected;
+  planets.forEach(function (g) {
+    var line = g.userData.orbitLine;
+    if (!line) return;
+    var id = g.userData.def.id;
+    var mat = line.material;
+    if (sel === 'sun') mat.opacity = ORBIT_OPACITY.normal;
+    else if (sel === 'moon') mat.opacity = id === 'earth' ? ORBIT_OPACITY.highlight : ORBIT_OPACITY.dim;
+    else mat.opacity = id === sel ? ORBIT_OPACITY.highlight : ORBIT_OPACITY.dim;
+  });
+  if (moonOrbitLine) {
+    moonOrbitLine.material.opacity = (sel === 'moon' || sel === 'earth')
+      ? ORBIT_OPACITY.highlight : ORBIT_OPACITY.dim;
+  }
+}
+
+function makeLabel(text, color) {
   var el = document.createElement('div');
   el.className = 'planet-label';
+  if (color) el.style.borderColor = color;
   el.textContent = text;
   var obj = new CSS2DObject(el);
   obj.visible = state.showLabels;
@@ -385,7 +416,7 @@ function buildScene(textures) {
   sunGroup.add(sunLight);
   scene.add(sunGroup);
 
-  var sunLabel = makeLabel('Sun');
+  var sunLabel = makeLabel('Sun', SUN.color);
   sunLabel.position.set(0, 5.2, 0);
   sunGroup.add(sunLabel);
   labelObjs.push(sunLabel);
@@ -424,7 +455,7 @@ function buildScene(textures) {
       body.add(makeRingMesh(meshSize * 1.35, meshSize * 2.35, textures.saturn_ring));
     }
 
-    var tilt = (idx % 5) * 0.12 - 0.22;
+    var tilt = 0;
     group.userData = {
       def: def,
       angle: Math.PI + idx * 0.62,
@@ -434,21 +465,20 @@ function buildScene(textures) {
     var orbitPts = [];
     for (var s = 0; s <= 128; s++) {
       var a = (s / 128) * Math.PI * 2;
-      orbitPts.push(
-        def.orbit * Math.cos(a),
-        def.orbit * Math.sin(a) * Math.cos(tilt),
-        def.orbit * Math.sin(a) * Math.sin(tilt)
-      );
+      orbitPts.push(def.orbit * Math.cos(a), 0, def.orbit * Math.sin(a));
     }
     var orbitGeo = new THREE.BufferGeometry();
     orbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(orbitPts, 3));
-    var orbitLine = new THREE.Line(orbitGeo, new THREE.LineBasicMaterial({
-      color: 0x3a4a68, transparent: true, opacity: 0.14
-    }));
+    var orbitLine = new THREE.Line(
+      orbitGeo,
+      makeOrbitMaterial(def.color, ORBIT_OPACITY.normal)
+    );
+    orbitLine.userData.bodyId = def.id;
     scene.add(orbitLine);
     orbitLines.push(orbitLine);
+    group.userData.orbitLine = orbitLine;
 
-    var label = makeLabel(def.name);
+    var label = makeLabel(def.name, def.color);
     label.position.set(0, meshSize + 0.6, 0);
     group.add(label);
     labelObjs.push(label);
@@ -473,7 +503,7 @@ function buildScene(textures) {
     moonMesh.userData.isMoon = true;
     earth.userData.body.add(moonMesh);
 
-    var moonLabel = makeLabel('Moon');
+    var moonLabel = makeLabel('Moon', MOON.color);
     moonLabel.position.set(0, earthSize * 0.34, 0);
     moonMesh.add(moonLabel);
     labelObjs.push(moonLabel);
@@ -487,12 +517,15 @@ function buildScene(textures) {
     }
     var moonOrbitGeo = new THREE.BufferGeometry();
     moonOrbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(moonOrbitPts, 3));
-    var moonOrbitLine = new THREE.Line(moonOrbitGeo, new THREE.LineBasicMaterial({
-      color: 0x8899bb, transparent: true, opacity: 0.2
-    }));
+    moonOrbitLine = new THREE.Line(
+      moonOrbitGeo,
+      makeOrbitMaterial(MOON.color, ORBIT_OPACITY.dim)
+    );
     moonOrbitLine.userData.isMoonOrbit = true;
     earth.userData.body.add(moonOrbitLine);
   }
+
+  updateOrbitHighlight();
 
   var statBodies = document.getElementById('stat-bodies');
   if (statBodies) statBodies.textContent = String(9 + (moonMesh ? 1 : 0));
@@ -534,6 +567,7 @@ function setSelected(id) {
   document.querySelectorAll('.legend-chip').forEach(function (el) {
     el.classList.toggle('active', el.dataset.id === id);
   });
+  updateOrbitHighlight();
 }
 
 function focusBody(id) {
@@ -620,12 +654,8 @@ bind('autoOrbit', 'change', function (e) { state.autoOrbit = e.target.checked; }
 bind('showOrbits', 'change', function (e) {
   state.showOrbits = e.target.checked;
   orbitLines.forEach(function (l) { l.visible = state.showOrbits; });
-  planets.forEach(function (g) {
-    if (!g.userData.body) return;
-    g.userData.body.children.forEach(function (ch) {
-      if (ch.userData && ch.userData.isMoonOrbit) ch.visible = state.showOrbits;
-    });
-  });
+  if (moonOrbitLine) moonOrbitLine.visible = state.showOrbits;
+  if (state.showOrbits) updateOrbitHighlight();
 });
 bind('showLabels', 'change', function (e) {
   state.showLabels = e.target.checked;
@@ -679,11 +709,7 @@ function animate() {
   planets.forEach(function (g) {
     var d = g.userData;
     d.angle = advanceOrbit(d.angle, d.def.periodDays, dt);
-    g.position.set(
-      d.orbit * Math.cos(d.angle),
-      d.orbit * Math.sin(d.angle) * Math.cos(d.tilt),
-      d.orbit * Math.sin(d.angle) * Math.sin(d.tilt)
-    );
+    g.position.set(d.orbit * Math.cos(d.angle), 0, d.orbit * Math.sin(d.angle));
     if (d.body) {
       d.body.rotation.y = advanceSpin(d.body.rotation.y, d.def.rotDays, dt, d.def.retrograde);
     } else {

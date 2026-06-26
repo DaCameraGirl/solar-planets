@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Solar Planets</title>
+  <meta name="description" content="A cinematic 3D solar system — real planets, living orbits, enterprise observatory UI. 100% in your browser." />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="stylesheet" href="styles/solar.css" />
+</head>
+<body>
+  <div id="view"></div>
+  <div id="error" role="alert"></div>
+
+  <header id="brand">
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <h1>Solar Planets</h1>
+      <p>Our solar system — as a place you can orbit.</p>
+    </div>
+  </header>
+
+  <aside id="panel">
+    <section>
+      <h2>View</h2>
+      <label class="row"><input id="autoOrbit" type="checkbox" checked /> Auto-orbit camera</label>
+      <label class="row"><input id="showOrbits" type="checkbox" checked /> Orbit paths</label>
+      <label class="row"><input id="showLabels" type="checkbox" checked /> Planet labels</label>
+      <label>Time scale <input id="timeScale" type="range" min="0" max="100" value="35" /></label>
+      <div class="btnrow">
+        <button id="resetCam">Reset view</button>
+        <button id="focusSun" class="ghost">Focus Sun</button>
+      </div>
+    </section>
+    <section id="planetInfo">
+      <h2>Selected</h2>
+      <p id="infoName" class="info-title">Sun</p>
+      <p id="infoDesc" class="hint">Click any planet to inspect. Drag to look around, scroll to zoom.</p>
+      <dl id="infoStats" class="stats-dl"></dl>
+    </section>
+  </aside>
+
+  <footer id="hud">
+    <div id="legend"></div>
+    <div id="stats">
+      <span><strong id="stat-bodies">9</strong> bodies</span>
+      <span><strong id="stat-fps">0</strong> fps</span>
+      <span id="stat-scale">time ×1.0</span>
+    </div>
+  </footer>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>

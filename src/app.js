@@ -28,9 +28,9 @@ var state = {
 
 var EARTH_YEAR_DAYS = 365.25;
 var MOON_ORBIT_DAYS = 27.3;
-var TIME_SLIDER_DEFAULT = 10;
-var MIN_DAYS_PER_SEC = 1 / 300;
-var MAX_DAYS_PER_SEC = 1;
+var TIME_SLIDER_DEFAULT = 5;
+var MIN_DAYS_PER_SEC = 1 / 1800;
+var MAX_DAYS_PER_SEC = 1 / 300;
 
 function daysPerSecondFromSlider(val) {
   var t = Math.max(0, Math.min(100, val)) / 100;
@@ -848,8 +848,26 @@ function bind(id, evt, fn) {
   if (el) el.addEventListener(evt, fn);
 }
 bind('autoOrbit', 'change', function (e) { state.autoOrbit = e.target.checked; });
-bind('planetSpin', 'change', function (e) { state.planetSpin = e.target.checked; });
-bind('planetOrbit', 'change', function (e) { state.planetOrbit = e.target.checked; });
+function clampSimSpeedForMotion() {
+  if (!state.planetSpin && !state.planetOrbit) return;
+  var slider = document.getElementById('timeScale');
+  if (!slider) return;
+  var maxSlow = 35;
+  if (+slider.value > maxSlow) {
+    slider.value = String(maxSlow);
+    state.daysPerSecond = daysPerSecondFromSlider(maxSlow);
+    updateTimeScaleUI();
+  }
+}
+
+bind('planetSpin', 'change', function (e) {
+  state.planetSpin = e.target.checked;
+  if (e.target.checked) clampSimSpeedForMotion();
+});
+bind('planetOrbit', 'change', function (e) {
+  state.planetOrbit = e.target.checked;
+  if (e.target.checked) clampSimSpeedForMotion();
+});
 bind('showOrbits', 'change', function (e) {
   state.showOrbits = e.target.checked;
   orbitLines.forEach(function (l) { l.visible = state.showOrbits; });
@@ -893,7 +911,7 @@ var clock = new THREE.Clock();
 var fpsFrames = 0, fpsLast = performance.now();
 
 function updateCamera() {
-  if (state.autoOrbit) camTheta += 0.0018;
+  if (state.autoOrbit) camTheta += 0.00045;
   var x = camTarget.x + camDist * Math.sin(camPhi) * Math.cos(camTheta);
   var y = camTarget.y + camDist * Math.cos(camPhi);
   var z = camTarget.z + camDist * Math.sin(camPhi) * Math.sin(camTheta);

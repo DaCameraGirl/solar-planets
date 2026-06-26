@@ -29,7 +29,7 @@ Planet surface maps are **NASA / NOAA / USGS public-domain imagery** and **space
 
 ## Sky
 
-- **Stars** — Milky Way all-sky (NOAA SOS)
+- **Stars** — NASA WISE all-sky mosaic 4K (NOAA SOS), plus procedural twinkle points and shooting stars in the viewer
 
 ## Refresh bundled maps
 

@@ -437,7 +437,7 @@ var composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 var bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.32, 0.52, 0.94
+  0.38, 0.55, 0.88
 );
 composer.addPass(bloomPass);
 
@@ -505,7 +505,7 @@ function buildSkyEnvironment(starsTex) {
 
 // ---- sun & planets (textures loaded at boot) ------------------------------
 var sunGroup = new THREE.Group();
-var sunCore, sunGlow, sunCorona;
+var sunCore;
 var planets = [];
 var orbitLines = [];
 var labelObjs = [];
@@ -603,18 +603,10 @@ function buildScene(textures) {
   if (textures.starsSky) buildSkyEnvironment(textures.starsSky);
 
   sunCore = new THREE.Mesh(
-    new THREE.SphereGeometry(3.2, 72, 72),
+    new THREE.SphereGeometry(3.2, 80, 80),
     new THREE.MeshBasicMaterial({ map: textures.sun, color: 0xffffff })
   );
-  sunGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(4.6, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0xffe8a8, transparent: true, opacity: 0.18 })
-  );
-  sunCorona = new THREE.Mesh(
-    new THREE.SphereGeometry(6.2, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0xff9933, transparent: true, opacity: 0.06 })
-  );
-  sunGroup.add(sunCorona); sunGroup.add(sunGlow); sunGroup.add(sunCore);
+  sunGroup.add(sunCore);
   sunGroup.add(sunLight);
   scene.add(sunGroup);
 
@@ -770,7 +762,7 @@ function setCamLimits(id) {
 
 function pickables() {
   var list = [];
-  if (sunCore) list.push(sunCore, sunGlow);
+  if (sunCore) list.push(sunCore);
   planets.forEach(function (g) { list.push(g.userData.mesh); });
   if (moonMesh) list.push(moonMesh);
   return list;
@@ -864,7 +856,7 @@ window.addEventListener('pointerup', function (e) {
   var hits = raycaster.intersectObjects(pickables(), false);
   if (!hits.length) return;
   var obj = hits[0].object;
-  if (obj === sunCore || obj === sunGlow) focusBody('sun');
+  if (obj === sunCore) focusBody('sun');
   else if (obj === moonMesh) focusBody('moon');
   else {
     var g = planets.find(function (p) { return p.userData.mesh === obj; });
@@ -1006,8 +998,6 @@ function freezeAllBodies() {
     });
   });
   if (sunCore) sunCore.rotation.y = 0;
-  if (sunGlow) sunGlow.scale.setScalar(1);
-  if (sunCorona) sunCorona.scale.setScalar(1);
 }
 
 function syncMotionCheckboxes() {
@@ -1096,9 +1086,6 @@ function animate() {
     if (sunGroup.children.length && state.planetSpin) {
       sunCore.rotation.y = advanceSpin(sunCore.rotation.y, SUN.rotDays, dt, false);
     }
-    var pulse = 1 + 0.025 * Math.sin(clock.elapsedTime * 1.1);
-    if (sunGlow) sunGlow.scale.setScalar(pulse);
-    if (sunCorona) sunCorona.scale.setScalar(1 + 0.035 * Math.sin(clock.elapsedTime * 0.7));
 
     planets.forEach(function (g) {
       var d = g.userData;

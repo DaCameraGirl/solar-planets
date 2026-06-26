@@ -100,9 +100,9 @@ const TEXTURES = [
   },
   {
     name: '8k_stars_milky_way.jpg',
-    url: `${SOS}/milky_way/all_sky/2048.jpg`,
-    minBytes: 200000,
-    source: 'Milky Way all-sky survey (NOAA SOS)'
+    url: `${SOS}/allsky_wise/mosaic/4096.jpg`,
+    minBytes: 2000000,
+    source: 'NASA WISE all-sky infrared mosaic (NOAA SOS)'
   }
 ];
 

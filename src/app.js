@@ -429,6 +429,9 @@ var SKY_FRAG = [
   '  vec3 dir = normalize(vWorldPos);',
   '  vec2 uv = vec2(atan(dir.z, dir.x) / 6.2831853 + 0.5, asin(clamp(dir.y, -1.0, 1.0)) / 3.14159265 + 0.5);',
   '  vec3 stars = texture2D(starsMap, uv).rgb;',
+  '  float starLum = max(stars.r, max(stars.g, stars.b));',
+  '  stars = pow(stars, vec3(0.92));',
+  '  stars *= 1.0 + starLum * starLum * 2.4;',
   '  float horizon = smoothstep(-0.08, 0.42, dir.y);',
   '  vec3 daySky = mix(vec3(0.28, 0.48, 0.78), vec3(0.08, 0.22, 0.52), horizon);',
   '  float sunDot = max(dot(dir, sunDirection), 0.0);',
@@ -436,11 +439,68 @@ var SKY_FRAG = [
   '  daySky += vec3(1.0, 0.72, 0.38) * pow(sunDot, 14.0) * 0.16;',
   '  float sunset = exp(-abs(dir.y) * 7.0) * pow(1.0 - sunDot, 2.0);',
   '  daySky += vec3(1.0, 0.42, 0.2) * sunset * 0.32 * (1.0 - dayBlend * 0.35);',
-  '  vec3 night = stars * (0.72 + 0.28 * pow(1.0 - max(dir.y, 0.0), 1.5));',
+  '  vec3 night = stars * (0.92 + 0.18 * pow(1.0 - max(dir.y, 0.0), 1.1));',
+  '  night += vec3(0.03, 0.05, 0.11) * exp(-abs(dir.y) * 3.5);',
   '  float twilight = smoothstep(0.0, 0.22, dayBlend) * (1.0 - smoothstep(0.72, 1.0, dayBlend));',
   '  night = mix(night, night * vec3(1.08, 0.72, 0.52), twilight * 0.45);',
   '  vec3 color = mix(night, daySky, clamp(dayBlend, 0.0, 1.0));',
   '  gl_FragColor = vec4(color, 1.0);',
+  '}'
+].join('\n');
+
+var STAR_POINT_VERT = [
+  'attribute float aSize;',
+  'attribute float aPhase;',
+  'attribute vec3 color;',
+  'varying vec3 vColor;',
+  'varying float vTwinkle;',
+  'uniform float uTime;',
+  'uniform float uPixelRatio;',
+  'void main() {',
+  '  vColor = color;',
+  '  float tw = 0.5 + 0.5 * sin(uTime * (0.7 + aPhase * 1.8) + aPhase * 6.283);',
+  '  vTwinkle = tw;',
+  '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+  '  gl_PointSize = aSize * (0.75 + tw * 0.55) * uPixelRatio * (300.0 / -mv.z);',
+  '  gl_Position = projectionMatrix * mv;',
+  '}'
+].join('\n');
+
+var STAR_POINT_FRAG = [
+  'varying vec3 vColor;',
+  'varying float vTwinkle;',
+  'uniform float uOpacity;',
+  'void main() {',
+  '  vec2 uv = gl_PointCoord - 0.5;',
+  '  float d = length(uv);',
+  '  if (d > 0.5) discard;',
+  '  float core = exp(-d * d * 32.0);',
+  '  float halo = exp(-d * 10.0) * 0.4;',
+  '  float a = (core + halo) * vTwinkle * uOpacity;',
+  '  gl_FragColor = vec4(vColor, a);',
+  '}'
+].join('\n');
+
+var SHOOT_VERT = [
+  'varying vec2 vUv;',
+  'void main() {',
+  '  vUv = uv;',
+  '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+  '}'
+].join('\n');
+
+var SHOOT_FRAG = [
+  'varying vec2 vUv;',
+  'uniform float uOpacity;',
+  'void main() {',
+  '  float along = vUv.x;',
+  '  float across = abs(vUv.y - 0.5) * 2.0;',
+  '  float trail = smoothstep(0.0, 0.12, along) * pow(1.0 - along, 1.4);',
+  '  float core = exp(-across * across * 20.0);',
+  '  float head = exp(-pow((along - 1.0) / 0.07, 2.0)) * 2.2;',
+  '  float a = (trail * core + head) * uOpacity;',
+  '  vec3 col = mix(vec3(0.72, 0.86, 1.0), vec3(1.0, 0.97, 0.9), head);',
+  '  gl_FragColor = vec4(col, a);',
   '}'
 ].join('\n');
 
@@ -479,11 +539,17 @@ var sunLight = new THREE.PointLight(0xfff8e8, 8.5, 320, 1.6);
 var skyDome = null;
 var skyMat = null;
 var starSparkle = null;
+var shootingStarPool = [];
+var nextShootingSpawn = 1.8;
+var skyStarVisibility = 1;
 var moonMat = null;
 var skyNightColor = new THREE.Color(0x010208);
 var skyDayColor = new THREE.Color(0x142a4a);
 var tmpSunDir = new THREE.Vector3();
 var skySunDir = new THREE.Vector3();
+var shootTmpDir = new THREE.Vector3();
+var shootTmpTail = new THREE.Vector3();
+var shootTmpX = new THREE.Vector3(1, 0, 0);
 var SKY_PHASE_OFFSET = Math.PI * 0.55;
 var BLOOM_STRENGTH_NIGHT = 0.38;
 
@@ -513,30 +579,150 @@ function buildSkyEnvironment(starsTex) {
   skyDome.renderOrder = -2;
   scene.add(skyDome);
 
-  var starCount = 1800;
+  var starCount = 4200;
   var starGeo = new THREE.BufferGeometry();
   var starPos = new Float32Array(starCount * 3);
   var starCol = new Float32Array(starCount * 3);
+  var starSize = new Float32Array(starCount);
+  var starPhase = new Float32Array(starCount);
   for (var i = 0; i < starCount; i++) {
-    var r = 200 + Math.random() * 35;
+    var r = 198 + Math.random() * 38;
     var theta = Math.random() * Math.PI * 2;
     var phi = Math.acos(2 * Math.random() - 1);
     starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
     starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
     starPos[i * 3 + 2] = r * Math.cos(phi);
-    var tint = 0.88 + Math.random() * 0.12;
-    starCol[i * 3] = tint;
-    starCol[i * 3 + 1] = tint * (0.95 + Math.random() * 0.05);
-    starCol[i * 3 + 2] = 1;
+    var temp = Math.random();
+    var cr = 0.78 + temp * 0.22;
+    var cg = 0.82 + temp * 0.16;
+    var cb = 1.0;
+    if (temp < 0.18) { cr = 0.95; cg = 0.92; cb = 1.0; }
+    else if (temp > 0.88) { cr = 1.0; cg = 0.78; cb = 0.62; }
+    starCol[i * 3] = cr;
+    starCol[i * 3 + 1] = cg;
+    starCol[i * 3 + 2] = cb;
+    starSize[i] = 0.35 + Math.pow(Math.random(), 1.8) * 2.4;
+    starPhase[i] = Math.random();
   }
   starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
   starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
-  starSparkle = new THREE.Points(starGeo, new THREE.PointsMaterial({
-    vertexColors: true, size: 0.55, transparent: true, opacity: 0.75, sizeAttenuation: true,
-    depthWrite: false, blending: THREE.AdditiveBlending
+  starGeo.setAttribute('aSize', new THREE.BufferAttribute(starSize, 1));
+  starGeo.setAttribute('aPhase', new THREE.BufferAttribute(starPhase, 1));
+  starSparkle = new THREE.Points(starGeo, new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uPixelRatio: { value: renderer.getPixelRatio() },
+      uOpacity: { value: 1 }
+    },
+    vertexShader: STAR_POINT_VERT,
+    fragmentShader: STAR_POINT_FRAG,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexColors: true
   }));
   starSparkle.renderOrder = -1;
   scene.add(starSparkle);
+  buildShootingStars();
+}
+
+function buildShootingStars() {
+  shootingStarPool = [];
+  for (var i = 0; i < 10; i++) {
+    var streak = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.ShaderMaterial({
+        uniforms: { uOpacity: { value: 0 } },
+        vertexShader: SHOOT_VERT,
+        fragmentShader: SHOOT_FRAG,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      })
+    );
+    streak.visible = false;
+    streak.frustumCulled = false;
+    streak.userData.active = false;
+    streak.renderOrder = 1;
+    scene.add(streak);
+    shootingStarPool.push(streak);
+  }
+}
+
+function spawnShootingStar() {
+  var streak = null;
+  for (var i = 0; i < shootingStarPool.length; i++) {
+    if (!shootingStarPool[i].userData.active) {
+      streak = shootingStarPool[i];
+      break;
+    }
+  }
+  if (!streak) return;
+
+  var theta = Math.random() * Math.PI * 2;
+  var phi = Math.acos(Math.random() * 0.55 + 0.2);
+  var r = 205;
+  var head = new THREE.Vector3(
+    r * Math.sin(phi) * Math.cos(theta),
+    r * Math.cos(phi) * 0.55 + r * 0.18,
+    r * Math.sin(phi) * Math.sin(theta)
+  );
+  shootTmpDir.set(
+    (Math.random() - 0.5) * 1.1,
+    -0.22 - Math.random() * 0.42,
+    (Math.random() - 0.5) * 1.1
+  ).normalize();
+
+  streak.userData = {
+    active: true,
+    life: 0,
+    maxLife: 0.28 + Math.random() * 0.52,
+    head: head,
+    dir: shootTmpDir.clone(),
+    speed: 52 + Math.random() * 68,
+    length: 10 + Math.random() * 18,
+    width: 0.12 + Math.random() * 0.18
+  };
+  streak.visible = true;
+}
+
+function updateShootingStars(dt) {
+  if (skyStarVisibility < 0.2) {
+    shootingStarPool.forEach(function (s) {
+      s.visible = false;
+      s.userData.active = false;
+    });
+    return;
+  }
+
+  nextShootingSpawn -= dt;
+  if (nextShootingSpawn <= 0) {
+    if (Math.random() < 0.82) spawnShootingStar();
+    nextShootingSpawn = 1.8 + Math.random() * 6.5;
+  }
+
+  shootingStarPool.forEach(function (streak) {
+    var d = streak.userData;
+    if (!d.active) return;
+
+    d.life += dt;
+    if (d.life > d.maxLife) {
+      d.active = false;
+      streak.visible = false;
+      streak.material.uniforms.uOpacity.value = 0;
+      return;
+    }
+
+    d.head.addScaledVector(d.dir, d.speed * dt);
+    var t = d.life / d.maxLife;
+    var fade = t < 0.1 ? t / 0.1 : (t > 0.72 ? (1 - t) / 0.28 : 1);
+    streak.material.uniforms.uOpacity.value = fade * 0.92 * skyStarVisibility;
+
+    streak.position.copy(d.head).addScaledVector(d.dir, -d.length * 0.5);
+    streak.scale.set(d.length, d.width, 1);
+    streak.quaternion.setFromUnitVectors(shootTmpX, d.dir);
+  });
 }
 
 // ---- sun & planets (textures loaded at boot) ------------------------------
@@ -995,6 +1181,9 @@ window.addEventListener('resize', function () {
   composer.setSize(window.innerWidth, window.innerHeight);
   bloomPass.setSize(window.innerWidth, window.innerHeight);
   labelRenderer.setSize(window.innerWidth, window.innerHeight);
+  if (starSparkle && starSparkle.material.uniforms && starSparkle.material.uniforms.uPixelRatio) {
+    starSparkle.material.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+  }
 });
 
 // ---- animate ------------------------------------------------------------
@@ -1101,8 +1290,13 @@ function updateSkyCycle() {
 
   if (starSparkle) {
     var starFade = 1 - smoothRange(0.04, 0.42, dayBlend);
-    starSparkle.material.opacity = starFade * 0.88;
+    skyStarVisibility = starFade;
+    if (starSparkle.material.uniforms) {
+      starSparkle.material.uniforms.uOpacity.value = starFade;
+    }
     starSparkle.visible = starFade > 0.02;
+  } else {
+    skyStarVisibility = 1 - smoothRange(0.04, 0.42, dayBlend);
   }
 
   bloomPass.strength = BLOOM_STRENGTH_NIGHT * (1 - dayBlend * 0.55);
@@ -1173,6 +1367,10 @@ function animate() {
 
   updateCamera();
   updateSkyCycle();
+  if (starSparkle && starSparkle.material.uniforms) {
+    starSparkle.material.uniforms.uTime.value = clock.elapsedTime;
+  }
+  updateShootingStars(dt);
   composer.render();
   labelRenderer.render(scene, camera);
 

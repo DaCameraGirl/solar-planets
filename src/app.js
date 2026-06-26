@@ -79,7 +79,7 @@ function advanceSpin(rotation, rotDays, dt, retrograde) {
   return rotation + (retrograde ? -delta : delta);
 }
 
-// Bundled same-origin — 8K Solar System Scope via Wikimedia Commons (CC BY 4.0), 2K fallback.
+// Bundled same-origin NASA / NOAA SOS / USGS / spacecraft imagery, 2K fallback.
 var TEXTURE_BASE = 'assets/textures/';
 var TEXTURE_CANDIDATES = {
   sun: ['8k_sun.jpg', '2k_sun.jpg'],
@@ -93,7 +93,7 @@ var TEXTURE_CANDIDATES = {
   jupiter: ['8k_jupiter.jpg', '2k_jupiter.jpg'],
   saturn: ['8k_saturn.jpg', '2k_saturn.jpg'],
   saturnRing: ['8k_saturn_ring_alpha.png', '2k_saturn_ring_alpha.png'],
-  uranus: ['4k_uranus.jpg', '2k_uranus.jpg'],
+  uranus: ['4k_uranus.png', '4k_uranus.jpg', '2k_uranus.jpg'],
   neptune: ['4k_neptune.jpg', '2k_neptune.jpg'],
   moon: ['8k_moon.jpg', '2k_moon.jpg']
 };
@@ -279,15 +279,18 @@ var PLANET_SURFACE_FRAG = [
 
 function surfaceLightingFor(def) {
   if (def.id === 'moon') {
-    return { ambientFloor: 0.44, litBoost: 1.14, contrastPower: 0.82, rimStrength: 0.1 };
+    return { ambientFloor: 0.4, litBoost: 1.08, contrastPower: 0.9, rimStrength: 0.06 };
   }
   if (isGasGiant(def.id)) {
-    return { ambientFloor: 0.54, litBoost: 1.1, contrastPower: 0.5, rimStrength: 0.14 };
+    return { ambientFloor: 0.5, litBoost: 1.04, contrastPower: 0.62, rimStrength: 0.08 };
   }
   if (def.id === 'earth') {
-    return { ambientFloor: 0.48, litBoost: 1.16, contrastPower: 0.62, rimStrength: 0.12 };
+    return { ambientFloor: 0.44, litBoost: 1.1, contrastPower: 0.78, rimStrength: 0.08 };
   }
-  return { ambientFloor: 0.42, litBoost: 1.2, contrastPower: 0.72, rimStrength: 0.1 };
+  if (def.id === 'mars') {
+    return { ambientFloor: 0.38, litBoost: 1.12, contrastPower: 0.88, rimStrength: 0.05 };
+  }
+  return { ambientFloor: 0.38, litBoost: 1.1, contrastPower: 0.85, rimStrength: 0.06 };
 }
 
 function planetMaterial(def, tex) {
@@ -325,7 +328,7 @@ var EARTH_DAY_NIGHT_FRAG = [
   '  vec3 L = normalize(sunPosition - vWorldPos);',
   '  float ndotl = dot(N, L);',
   '  vec3 dayCol = texture2D(dayMap, vUv).rgb;',
-  '  vec3 nightCol = texture2D(nightMap, vUv).rgb * 2.6;',
+  '  vec3 nightCol = texture2D(nightMap, vUv).rgb * 1.45;',
   '  float dayAmt = smoothstep(-0.04, 0.18, ndotl);',
   '  float ocean = smoothstep(0.08, 0.38, dayCol.b - max(dayCol.r, dayCol.g));',
   '  vec3 waterTint = mix(dayCol, vec3(0.12, 0.42, 0.82), ocean * 0.28 * dayAmt);',

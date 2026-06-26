@@ -48,10 +48,11 @@
       <label class="row"><input id="showLabels" type="checkbox" checked /> Planet labels</label>
       <label class="row"><input id="dayNightCycle" type="checkbox" checked /> Day / night sky cycle</label>
       <p class="hint small">Real Milky Way photo sky, Earth city lights at night, clouds by day — sky shifts as Earth spins.</p>
-      <label>Sim speed <span id="timeScaleLabel" class="hint">1 sec = 9 Earth days</span>
-        <input id="timeScale" type="range" min="0" max="100" value="35" />
+      <label>Sim speed <span id="timeScaleLabel" class="hint">1 Earth day ≈ 45 sec</span>
+        <input id="timeScale" type="range" min="0" max="100" value="10" />
       </label>
-      <p id="timeScaleEarth" class="hint small">Earth year ≈ 41 sec · spin ≈ 9×/sec at this speed</p>
+      <p id="timeScaleEarth" class="hint small">1 Earth spin ≈ 1 min · Moon orbit ≈ 30 min (real ratio: Moon is 27.3× slower)</p>
+      <p class="hint small">We are <strong>not</strong> spinning that fast in real life — the sim compresses time so you can watch orbits. Ratios match NASA: 1 Earth day per spin, Moon every 27.3 days. Slide right for fast-forward.</p>
       <div class="btnrow">
         <button id="resetCam">Reset view</button>
         <button id="focusSun" class="ghost">Focus Sun</button>

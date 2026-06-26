@@ -79,23 +79,39 @@ function advanceSpin(rotation, rotDays, dt, retrograde) {
   return rotation + (retrograde ? -delta : delta);
 }
 
-// Bundled same-origin (Solar System Scope 2K maps) — external CDN blocks WebGL CORS.
+// Bundled same-origin — 8K Solar System Scope via Wikimedia Commons (CC BY 4.0), 2K fallback.
 var TEXTURE_BASE = 'assets/textures/';
+var TEXTURE_CANDIDATES = {
+  sun: ['8k_sun.jpg', '2k_sun.jpg'],
+  mercury: ['8k_mercury.jpg', '2k_mercury.jpg'],
+  venus: ['8k_venus_surface.jpg', '2k_venus_surface.jpg'],
+  earth: ['8k_earth_daymap.jpg', '2k_earth_daymap.jpg'],
+  earthNight: ['8k_earth_nightmap.jpg', '2k_earth_nightmap.jpg'],
+  earthClouds: ['8k_earth_clouds.jpg', '2k_earth_clouds.jpg'],
+  starsSky: ['8k_stars_milky_way.jpg', '2k_stars_milky_way.jpg'],
+  mars: ['8k_mars.jpg', '2k_mars.jpg'],
+  jupiter: ['8k_jupiter.jpg', '2k_jupiter.jpg'],
+  saturn: ['8k_saturn.jpg', '2k_saturn.jpg'],
+  saturnRing: ['8k_saturn_ring_alpha.png', '2k_saturn_ring_alpha.png'],
+  uranus: ['4k_uranus.jpg', '2k_uranus.jpg'],
+  neptune: ['4k_neptune.jpg', '2k_neptune.jpg'],
+  moon: ['8k_moon.jpg', '2k_moon.jpg']
+};
 var TEXTURES = {
-  sun: TEXTURE_BASE + '2k_sun.jpg',
-  mercury: TEXTURE_BASE + '2k_mercury.jpg',
-  venus: TEXTURE_BASE + '2k_venus_surface.jpg',
-  earth: TEXTURE_BASE + '2k_earth_daymap.jpg',
-  earthNight: TEXTURE_BASE + '2k_earth_nightmap.jpg',
-  earthClouds: TEXTURE_BASE + '2k_earth_clouds.jpg',
-  starsSky: TEXTURE_BASE + '2k_stars_milky_way.jpg',
-  mars: TEXTURE_BASE + '2k_mars.jpg',
-  jupiter: TEXTURE_BASE + '2k_jupiter.jpg',
-  saturn: TEXTURE_BASE + '2k_saturn.jpg',
-  saturnRing: TEXTURE_BASE + '2k_saturn_ring_alpha.png',
-  uranus: TEXTURE_BASE + '2k_uranus.jpg',
-  neptune: TEXTURE_BASE + '2k_neptune.jpg',
-  moon: TEXTURE_BASE + '2k_moon.jpg'
+  sun: TEXTURE_BASE + TEXTURE_CANDIDATES.sun[0],
+  mercury: TEXTURE_BASE + TEXTURE_CANDIDATES.mercury[0],
+  venus: TEXTURE_BASE + TEXTURE_CANDIDATES.venus[0],
+  earth: TEXTURE_BASE + TEXTURE_CANDIDATES.earth[0],
+  earthNight: TEXTURE_BASE + TEXTURE_CANDIDATES.earthNight[0],
+  earthClouds: TEXTURE_BASE + TEXTURE_CANDIDATES.earthClouds[0],
+  starsSky: TEXTURE_BASE + TEXTURE_CANDIDATES.starsSky[0],
+  mars: TEXTURE_BASE + TEXTURE_CANDIDATES.mars[0],
+  jupiter: TEXTURE_BASE + TEXTURE_CANDIDATES.jupiter[0],
+  saturn: TEXTURE_BASE + TEXTURE_CANDIDATES.saturn[0],
+  saturnRing: TEXTURE_BASE + TEXTURE_CANDIDATES.saturnRing[0],
+  uranus: TEXTURE_BASE + TEXTURE_CANDIDATES.uranus[0],
+  neptune: TEXTURE_BASE + TEXTURE_CANDIDATES.neptune[0],
+  moon: TEXTURE_BASE + TEXTURE_CANDIDATES.moon[0]
 };
 
 var BODIES = [
@@ -194,6 +210,21 @@ function loadTex(url) {
   return new Promise(function (resolve, reject) {
     loader.load(url, resolve, undefined, reject);
   });
+}
+
+function loadTexCandidates(key) {
+  var list = TEXTURE_CANDIDATES[key];
+  if (!list) return Promise.reject(new Error('Unknown texture key: ' + key));
+  var chain = Promise.reject();
+  list.forEach(function (file) {
+    var url = TEXTURE_BASE + file;
+    chain = chain.catch(function () {
+      return loadTex(url).then(function (tex) {
+        return { key: key, file: file, tex: tex };
+      });
+    });
+  });
+  return chain;
 }
 function prepTex(tex) {
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -595,7 +626,7 @@ function buildScene(textures) {
   BODIES.forEach(function (def, idx) {
     var group = new THREE.Group();
     var meshSize = 0.55 + def.size * 0.55;
-    var segs = def.segments || (def.id === 'earth' ? 72 : 56);
+    var segs = def.segments || (def.id === 'earth' ? 96 : (isGasGiant(def.id) ? 80 : 64));
     var body = new THREE.Group();
     body.rotation.x = def.axialTilt || 0;
     if (def.globeLon != null) body.rotation.y = def.globeLon;
@@ -1120,26 +1151,28 @@ function animate() {
 
 async function boot() {
   try {
-    var urls = {
-      sun: TEXTURES.sun,
-      saturn_ring: TEXTURES.saturnRing,
-      moon: TEXTURES.moon,
-      starsSky: TEXTURES.starsSky,
-      earth_night: TEXTURES.earthNight
-    };
-    BODIES.forEach(function (b) {
-      urls[b.id] = b.map;
-      if (b.clouds) urls[b.id + '_clouds'] = b.clouds;
-    });
-    var keys = Object.keys(urls);
-    var loaded = await Promise.all(keys.map(function (k) {
-      return loadTex(urls[k]).then(function (t) { return [k, prepTex(t)]; })
-        .catch(function (err) {
-          throw new Error('Texture "' + k + '" (' + urls[k] + '): ' + (err && err.message ? err.message : err));
-        });
+    var loadKeys = ['sun', 'mercury', 'venus', 'earth', 'earthNight', 'earthClouds', 'mars',
+      'jupiter', 'saturn', 'saturnRing', 'uranus', 'neptune', 'moon', 'starsSky'];
+    var statusEl = document.getElementById('loadingStatus');
+    var loaded = await Promise.all(loadKeys.map(function (k) {
+      return loadTexCandidates(k).then(function (hit) {
+        if (statusEl) statusEl.textContent = 'Loaded ' + hit.file + ' (' + k + ')…';
+        return [k, prepTex(hit.tex), hit.file];
+      }).catch(function (err) {
+        throw new Error('Texture "' + k + '": ' + (err && err.message ? err.message : err));
+      });
     }));
     var textures = {};
-    loaded.forEach(function (pair) { textures[pair[0]] = pair[1]; });
+    var resHint = [];
+    loaded.forEach(function (triple) {
+      var k = triple[0];
+      textures[k === 'saturnRing' ? 'saturn_ring' : k === 'earthNight' ? 'earth_night'
+        : k === 'earthClouds' ? 'earth_clouds' : k === 'starsSky' ? 'starsSky' : k] = triple[1];
+      if (triple[2].indexOf('8k_') === 0) resHint.push(k);
+    });
+    if (statusEl && resHint.length) {
+      statusEl.textContent = '8K maps ready — zoom any planet to see detail.';
+    }
 
     buildScene(textures);
     buildLegend();

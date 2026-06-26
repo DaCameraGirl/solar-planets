@@ -23,7 +23,8 @@ var state = {
   selected: 'sun'
 };
 
-var TEXTURE_BASE = 'https://www.solarsystemscope.com/textures/download/';
+// Bundled same-origin (Solar System Scope 2K maps) — external CDN blocks WebGL CORS.
+var TEXTURE_BASE = 'assets/textures/';
 var TEXTURES = {
   sun: TEXTURE_BASE + '2k_sun.jpg',
   mercury: TEXTURE_BASE + '2k_mercury.jpg',
@@ -457,7 +458,10 @@ async function boot() {
     });
     var keys = Object.keys(urls);
     var loaded = await Promise.all(keys.map(function (k) {
-      return loadTex(urls[k]).then(function (t) { return [k, prepTex(t)]; });
+      return loadTex(urls[k]).then(function (t) { return [k, prepTex(t)]; })
+        .catch(function (err) {
+          throw new Error('Texture "' + k + '" (' + urls[k] + '): ' + (err && err.message ? err.message : err));
+        });
     }));
     var textures = {};
     loaded.forEach(function (pair) { textures[pair[0]] = pair[1]; });

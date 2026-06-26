@@ -43,48 +43,60 @@ var TEXTURES = {
 var BODIES = [
   {
     id: 'mercury', name: 'Mercury', color: '#b5b5b5', size: 0.38, orbit: 10, speed: 4.15,
+    axialTilt: 0.03, roughness: 0.95, metalness: 0.02, bumpScale: 0.35,
     desc: 'The swift inner world — scorched, cratered, and closest to the Sun.',
     facts: { 'Day length': '59 Earth days', 'Year': '88 Earth days', 'Moons': '0' },
     map: TEXTURES.mercury
   },
   {
     id: 'venus', name: 'Venus', color: '#e8cda0', size: 0.95, orbit: 14, speed: 1.62,
+    axialTilt: 3.05, roughness: 0.82, metalness: 0.04, bumpScale: 0.12,
+    atmosphere: { color: 0xffd9a0, scale: 1.06, opacity: 0.22 },
     desc: "A brilliant sulfuric haze world — Earth's twin in size, opposite in temperament.",
     facts: { 'Day length': '243 Earth days', 'Year': '225 Earth days', 'Moons': '0' },
     map: TEXTURES.venus
   },
   {
     id: 'earth', name: 'Earth', color: '#4a9eff', size: 1.0, orbit: 18, speed: 1.0,
+    axialTilt: 0.41, roughness: 0.72, metalness: 0.05, bumpScale: 0.18,
+    atmosphere: { color: 0x5eb6ff, scale: 1.08, opacity: 0.28 },
     desc: 'Our home — blue oceans, white clouds, and the only known harbor of life.',
     facts: { 'Day length': '24 hours', 'Year': '365 days', 'Moons': '1 (Luna)' },
     map: TEXTURES.earth, clouds: TEXTURES.earthClouds
   },
   {
     id: 'mars', name: 'Mars', color: '#c1440e', size: 0.53, orbit: 23, speed: 0.53,
+    axialTilt: 0.44, roughness: 0.9, metalness: 0.03, bumpScale: 0.28,
+    atmosphere: { color: 0xff8866, scale: 1.04, opacity: 0.1 },
     desc: "The red frontier — dust storms, polar ice, and humanity's next horizon.",
     facts: { 'Day length': '24.6 hours', 'Year': '687 Earth days', 'Moons': '2' },
     map: TEXTURES.mars
   },
   {
     id: 'jupiter', name: 'Jupiter', color: '#d4a574', size: 2.8, orbit: 32, speed: 0.084,
+    axialTilt: 0.055, roughness: 0.65, metalness: 0.08, bumpScale: 0.08, segments: 64,
     desc: 'The giant king — banded storms and a magnetosphere that shapes the outer system.',
     facts: { 'Day length': '9.9 hours', 'Year': '12 Earth years', 'Moons': '95+' },
     map: TEXTURES.jupiter
   },
   {
     id: 'saturn', name: 'Saturn', color: '#f0d9a8', size: 2.35, orbit: 42, speed: 0.034,
+    axialTilt: 0.466, roughness: 0.7, metalness: 0.06, bumpScale: 0.06, segments: 64,
     desc: 'The ringed jewel — ice and rock in a halo that defines the solar aesthetic.',
     facts: { 'Day length': '10.7 hours', 'Year': '29 Earth years', 'Moons': '146+' },
     map: TEXTURES.saturn, rings: true, ringMap: TEXTURES.saturnRing
   },
   {
     id: 'uranus', name: 'Uranus', color: '#7de3f4', size: 1.6, orbit: 52, speed: 0.012,
+    axialTilt: 1.71, roughness: 0.58, metalness: 0.1, bumpScale: 0.05,
     desc: 'The tilted ice giant — rolling on its side through a pale cyan haze.',
     facts: { 'Day length': '17 hours', 'Year': '84 Earth years', 'Moons': '28' },
     map: TEXTURES.uranus
   },
   {
     id: 'neptune', name: 'Neptune', color: '#3d5afe', size: 1.55, orbit: 60, speed: 0.006,
+    axialTilt: 0.49, roughness: 0.55, metalness: 0.1, bumpScale: 0.05,
+    atmosphere: { color: 0x4466ff, scale: 1.05, opacity: 0.14 },
     desc: 'The deep blue sentinel — supersonic winds at the edge of our planetary family.',
     facts: { 'Day length': '16 hours', 'Year': '165 Earth years', 'Moons': '16' },
     map: TEXTURES.neptune
@@ -110,14 +122,14 @@ function prepTex(tex) {
 
 // ---- renderer -----------------------------------------------------------
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 500);
+var camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 500);
 camera.position.set(0, 28, 52);
 
 var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.38;
+renderer.toneMappingExposure = 1.12;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 container.appendChild(renderer.domElement);
 
@@ -125,7 +137,7 @@ var composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 var bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.55, 0.42, 0.88
+  0.32, 0.52, 0.94
 );
 composer.addPass(bloomPass);
 
@@ -137,13 +149,12 @@ labelRenderer.domElement.style.pointerEvents = 'none';
 container.appendChild(labelRenderer.domElement);
 
 // ---- lights & stars -----------------------------------------------------
-scene.add(new THREE.AmbientLight(0x223355, 0.35));
-var sunLight = new THREE.PointLight(0xfff0cc, 3.2, 220, 1.4);
-scene.add(sunLight);
-
+scene.add(new THREE.AmbientLight(0x0a1020, 0.06));
+var sunLight = new THREE.PointLight(0xfff4d6, 5.8, 280, 2);
 var starGeo = new THREE.BufferGeometry();
-var starCount = 4800;
+var starCount = 5200;
 var starPos = new Float32Array(starCount * 3);
+var starCol = new Float32Array(starCount * 3);
 for (var i = 0; i < starCount; i++) {
   var r = 120 + Math.random() * 80;
   var theta = Math.random() * Math.PI * 2;
@@ -151,10 +162,15 @@ for (var i = 0; i < starCount; i++) {
   starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
   starPos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
   starPos[i * 3 + 2] = r * Math.cos(phi);
+  var tint = 0.82 + Math.random() * 0.18;
+  starCol[i * 3] = tint;
+  starCol[i * 3 + 1] = tint * (0.94 + Math.random() * 0.06);
+  starCol[i * 3 + 2] = 1;
 }
 starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
 var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
-  color: 0xe8f0ff, size: 0.65, transparent: true, opacity: 0.82, sizeAttenuation: true
+  vertexColors: true, size: 0.45, transparent: true, opacity: 0.9, sizeAttenuation: true
 }));
 scene.add(stars);
 
@@ -174,20 +190,47 @@ function makeLabel(text) {
   return obj;
 }
 
+function addAtmosphere(parent, radius, cfg) {
+  var shell = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * cfg.scale, 48, 48),
+    new THREE.MeshBasicMaterial({
+      color: cfg.color,
+      transparent: true,
+      opacity: cfg.opacity,
+      side: THREE.BackSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  parent.add(shell);
+}
+
+function planetMaterial(def, tex) {
+  var mat = new THREE.MeshStandardMaterial({
+    map: tex,
+    roughness: def.roughness != null ? def.roughness : 0.75,
+    metalness: def.metalness != null ? def.metalness : 0.05,
+    bumpMap: tex,
+    bumpScale: def.bumpScale != null ? def.bumpScale : 0.15
+  });
+  return mat;
+}
+
 function buildScene(textures) {
   sunCore = new THREE.Mesh(
-    new THREE.SphereGeometry(3.2, 64, 64),
+    new THREE.SphereGeometry(3.2, 72, 72),
     new THREE.MeshBasicMaterial({ map: textures.sun, color: 0xffffff })
   );
   sunGlow = new THREE.Mesh(
-    new THREE.SphereGeometry(5.2, 48, 48),
-    new THREE.MeshBasicMaterial({ color: 0xffcc66, transparent: true, opacity: 0.28 })
+    new THREE.SphereGeometry(4.6, 48, 48),
+    new THREE.MeshBasicMaterial({ color: 0xffe8a8, transparent: true, opacity: 0.18 })
   );
   sunCorona = new THREE.Mesh(
-    new THREE.SphereGeometry(7.5, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0xff7722, transparent: true, opacity: 0.1 })
+    new THREE.SphereGeometry(6.2, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xff9933, transparent: true, opacity: 0.06 })
   );
   sunGroup.add(sunCorona); sunGroup.add(sunGlow); sunGroup.add(sunCore);
+  sunGroup.add(sunLight);
   scene.add(sunGroup);
 
   var sunLabel = makeLabel('Sun');
@@ -198,43 +241,57 @@ function buildScene(textures) {
   BODIES.forEach(function (def, idx) {
     var group = new THREE.Group();
     var meshSize = 0.55 + def.size * 0.55;
-    var mat = new THREE.MeshStandardMaterial({
-      map: textures[def.id],
-      roughness: 0.78, metalness: 0.12,
-      emissive: new THREE.Color(def.color), emissiveIntensity: 0.05
-    });
-    var mesh = new THREE.Mesh(new THREE.SphereGeometry(meshSize, 48, 48), mat);
-    group.add(mesh);
+    var segs = def.segments || 56;
+    var body = new THREE.Group();
+    body.rotation.z = def.axialTilt || 0;
+    var mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(meshSize, segs, segs),
+      planetMaterial(def, textures[def.id])
+    );
+    body.add(mesh);
+    group.add(body);
+
+    if (def.atmosphere) addAtmosphere(body, meshSize, def.atmosphere);
 
     if (def.clouds && textures[def.id + '_clouds']) {
       var clouds = new THREE.Mesh(
-        new THREE.SphereGeometry(meshSize * 1.02, 48, 48),
+        new THREE.SphereGeometry(meshSize * 1.015, segs, segs),
         new THREE.MeshStandardMaterial({
           map: textures[def.id + '_clouds'],
-          transparent: true, opacity: 0.55, depthWrite: false
+          transparent: true,
+          opacity: 0.72,
+          depthWrite: false,
+          roughness: 1,
+          metalness: 0
         })
       );
       clouds.userData.isClouds = true;
-      group.add(clouds);
+      body.add(clouds);
     }
 
     if (def.rings && textures.saturn_ring) {
       var ring = new THREE.Mesh(
-        new THREE.RingGeometry(meshSize * 1.35, meshSize * 2.1, 96),
-        new THREE.MeshBasicMaterial({
+        new THREE.RingGeometry(meshSize * 1.4, meshSize * 2.25, 128),
+        new THREE.MeshStandardMaterial({
           map: textures.saturn_ring,
-          side: THREE.DoubleSide, transparent: true, opacity: 0.85,
-          alphaMap: textures.saturn_ring, depthWrite: false
+          alphaMap: textures.saturn_ring,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.92,
+          depthWrite: false,
+          roughness: 0.85,
+          metalness: 0.05
         })
       );
-      ring.rotation.x = Math.PI / 2.2;
-      group.add(ring);
+      ring.rotation.x = Math.PI / 2;
+      body.add(ring);
     }
 
-    var tilt = (idx % 5) * 0.18 - 0.35;
+    var tilt = (idx % 5) * 0.12 - 0.22;
     group.userData = {
       def: def, angle: (idx / BODIES.length) * Math.PI * 2,
-      orbit: def.orbit, speed: def.speed, tilt: tilt, mesh: mesh, spin: 0.3 + idx * 0.07
+      orbit: def.orbit, speed: def.speed, tilt: tilt, mesh: mesh, body: body,
+      spin: 0.3 + idx * 0.07
     };
 
     var orbitPts = [];
@@ -249,7 +306,7 @@ function buildScene(textures) {
     var orbitGeo = new THREE.BufferGeometry();
     orbitGeo.setAttribute('position', new THREE.Float32BufferAttribute(orbitPts, 3));
     var orbitLine = new THREE.Line(orbitGeo, new THREE.LineBasicMaterial({
-      color: 0x4fd6e0, transparent: true, opacity: 0.22
+      color: 0x3a4a68, transparent: true, opacity: 0.14
     }));
     scene.add(orbitLine);
     orbitLines.push(orbitLine);
@@ -264,15 +321,16 @@ function buildScene(textures) {
   });
 
   var earth = planets[2];
-  if (earth) {
-    var moonMat = textures.moon
-      ? new THREE.MeshStandardMaterial({ map: textures.moon, roughness: 1 })
+  if (earth && earth.userData.body) {
+    var moonTex = textures.moon;
+    var moonMat = moonTex
+      ? new THREE.MeshStandardMaterial({ map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.2 })
       : new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 });
-    var moon = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), moonMat);
+    var moon = new THREE.Mesh(new THREE.SphereGeometry(0.22, 32, 32), moonMat);
     moon.userData.orbit = 1.6;
     moon.userData.speed = 3.5;
     moon.userData.angle = 0;
-    earth.add(moon);
+    earth.userData.body.add(moon);
   }
 }
 
@@ -409,10 +467,10 @@ function animate() {
   var dt = Math.min(clock.getDelta(), 0.05) * state.timeScale;
 
   if (sunGroup.children.length) {
-    sunGroup.rotation.y += dt * 0.08;
-    var pulse = 1 + 0.04 * Math.sin(clock.elapsedTime * 1.4);
+    sunCore.rotation.y += dt * 0.05;
+    var pulse = 1 + 0.025 * Math.sin(clock.elapsedTime * 1.1);
     if (sunGlow) sunGlow.scale.setScalar(pulse);
-    if (sunCorona) sunCorona.scale.setScalar(1 + 0.06 * Math.sin(clock.elapsedTime * 0.9));
+    if (sunCorona) sunCorona.scale.setScalar(1 + 0.035 * Math.sin(clock.elapsedTime * 0.7));
   }
 
   planets.forEach(function (g) {
@@ -423,8 +481,10 @@ function animate() {
       d.orbit * Math.sin(d.angle) * Math.cos(d.tilt),
       d.orbit * Math.sin(d.angle) * Math.sin(d.tilt)
     );
-    d.mesh.rotation.y += dt * d.spin;
-    g.children.forEach(function (ch) {
+    if (d.body) d.body.rotation.y += dt * d.spin;
+    else d.mesh.rotation.y += dt * d.spin;
+    var spinTarget = d.body || g;
+    spinTarget.children.forEach(function (ch) {
       if (ch.userData && ch.userData.isClouds) ch.rotation.y += dt * 0.06;
       if (ch.userData && ch.userData.orbit) {
         ch.userData.angle += dt * ch.userData.speed * 0.4;

@@ -29,8 +29,8 @@ var state = {
 var EARTH_YEAR_DAYS = 365.25;
 var MOON_ORBIT_DAYS = 27.3;
 var TIME_SLIDER_DEFAULT = 10;
-var MIN_DAYS_PER_SEC = 1 / 180;
-var MAX_DAYS_PER_SEC = 28;
+var MIN_DAYS_PER_SEC = 1 / 300;
+var MAX_DAYS_PER_SEC = 1;
 
 function daysPerSecondFromSlider(val) {
   var t = Math.max(0, Math.min(100, val)) / 100;
@@ -45,18 +45,7 @@ function formatDuration(sec) {
 }
 
 function formatSimSpeed(daysPerSec) {
-  if (daysPerSec < 1 / 48) {
-    return '1 Earth day ≈ ' + formatDuration(1 / daysPerSec);
-  }
-  if (daysPerSec < 1) {
-    var hrs = daysPerSec * 24;
-    if (hrs < 1) return '1 sec = ' + Math.round(daysPerSec * 24 * 60) + ' min';
-    return '1 sec = ' + hrs.toFixed(1) + ' hours';
-  }
-  if (daysPerSec < 45) return '1 sec = ' + daysPerSec.toFixed(1) + ' Earth days';
-  var months = daysPerSec / 30.44;
-  if (months < 18) return '1 sec = ' + months.toFixed(1) + ' months';
-  return '1 sec = ' + (daysPerSec / EARTH_YEAR_DAYS).toFixed(2) + ' years';
+  return '1 Earth spin ≈ ' + formatDuration(1 / daysPerSec);
 }
 
 function updateTimeScaleUI() {

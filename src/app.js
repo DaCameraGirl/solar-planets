@@ -313,9 +313,13 @@ var EARTH_DAY_NIGHT_FRAG = [
   'uniform float litBoost;',
   'uniform float contrastPower;',
   'uniform float rimStrength;',
+  'uniform float uTime;',
   'varying vec2 vUv;',
   'varying vec3 vWorldNormal;',
   'varying vec3 vWorldPos;',
+  'float hash21(vec2 p) {',
+  '  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);',
+  '}',
   'void main() {',
   '  vec3 N = normalize(vWorldNormal);',
   '  vec3 L = normalize(sunPosition - vWorldPos);',
@@ -323,30 +327,45 @@ var EARTH_DAY_NIGHT_FRAG = [
   '  vec3 dayCol = texture2D(dayMap, vUv).rgb;',
   '  vec3 nightCol = texture2D(nightMap, vUv).rgb * 2.6;',
   '  float dayAmt = smoothstep(-0.04, 0.18, ndotl);',
-  '  vec3 albedo = mix(nightCol, dayCol, dayAmt);',
+  '  float ocean = smoothstep(0.08, 0.38, dayCol.b - max(dayCol.r, dayCol.g));',
+  '  vec3 waterTint = mix(dayCol, vec3(0.12, 0.42, 0.82), ocean * 0.28 * dayAmt);',
+  '  vec3 albedo = mix(nightCol, waterTint, dayAmt);',
   '  float shade = mix(1.0, litBoost, pow(max(ndotl, 0.0), contrastPower));',
   '  vec3 color = albedo * mix(1.0, shade, dayAmt);',
   '  vec3 V = normalize(cameraPosition - vWorldPos);',
   '  float fresnel = pow(1.0 - max(dot(N, V), 0.0), 2.2);',
   '  color += mix(dayCol, nightCol, 1.0 - dayAmt) * fresnel * rimStrength;',
+  '  vec3 H = normalize(L + V);',
+  '  float sunGlint = pow(max(dot(N, H), 0.0), 64.0) * ocean * dayAmt;',
+  '  color += vec3(0.55, 0.82, 1.0) * sunGlint * 0.9;',
+  '  float southSea = smoothstep(-0.15, 0.55, -N.y) * ocean * dayAmt;',
+  '  vec2 sparkCell = floor(vUv * vec2(720.0, 360.0) + vec2(uTime * 18.0, uTime * 11.0));',
+  '  float sparkSeed = hash21(sparkCell);',
+  '  float sparkPulse = sin(uTime * 2.8 + sparkSeed * 6.283) * 0.5 + 0.5;',
+  '  float spark = step(0.988, sparkSeed) * sparkPulse;',
+  '  spark += step(0.982, hash21(sparkCell + 41.7)) * sparkPulse * 0.55;',
+  '  spark *= ocean * dayAmt * (0.45 + southSea * 0.85);',
+  '  color += vec3(0.82, 0.96, 1.0) * spark * 1.35;',
   '  gl_FragColor = vec4(color, 1.0);',
   '}'
 ].join('\n');
 
 function earthDayNightMaterial(dayTex, nightTex) {
   var light = surfaceLightingFor({ id: 'earth' });
-  return new THREE.ShaderMaterial({
+  earthSurfaceMat = new THREE.ShaderMaterial({
     uniforms: {
       dayMap: { value: dayTex },
       nightMap: { value: nightTex },
       sunPosition: { value: SUN_WORLD },
       litBoost: { value: light.litBoost },
       contrastPower: { value: light.contrastPower },
-      rimStrength: { value: light.rimStrength }
+      rimStrength: { value: light.rimStrength },
+      uTime: { value: 0 }
     },
     vertexShader: PLANET_SURFACE_VERT,
     fragmentShader: EARTH_DAY_NIGHT_FRAG
   });
+  return earthSurfaceMat;
 }
 
 var MOON_SURFACE_FRAG = [
@@ -511,6 +530,7 @@ var orbitLines = [];
 var labelObjs = [];
 var moonMesh = null;
 var moonOrbitLine = null;
+var earthSurfaceMat = null;
 
 var ORBIT_OPACITY = { highlight: 0.62, normal: 0.24, dim: 0.07 };
 
@@ -1121,6 +1141,10 @@ function animate() {
         }
       });
     });
+  }
+
+  if (earthSurfaceMat && earthSurfaceMat.uniforms.uTime) {
+    earthSurfaceMat.uniforms.uTime.value = clock.elapsedTime;
   }
 
   updateCamera();

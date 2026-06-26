@@ -100,7 +100,7 @@ var BODIES = [
     id: 'venus', name: 'Venus', color: '#e8cda0', size: 0.95, orbit: 14,
     periodDays: 225, rotDays: 243, retrograde: true,
     axialTilt: 3.05, roughness: 0.82, metalness: 0.04, bumpScale: 0.12,
-    atmosphere: { color: 0xffd9a0, scale: 1.06, opacity: 0.22 },
+    atmosphere: { color: 0xffd9a0, scale: 1.05, opacity: 0.12 },
     desc: "A brilliant sulfuric haze world — Earth's twin in size, opposite in temperament.",
     facts: { 'Day length': '243 Earth days', 'Year': '225 Earth days', 'Moons': '0' },
     map: TEXTURES.venus
@@ -186,7 +186,14 @@ function loadTex(url) {
 }
 function prepTex(tex) {
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   return tex;
+}
+
+function isGasGiant(id) {
+  return id === 'jupiter' || id === 'saturn' || id === 'uranus' || id === 'neptune';
 }
 
 // ---- renderer -----------------------------------------------------------
@@ -198,7 +205,7 @@ var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.28;
+renderer.toneMappingExposure = 1.38;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 container.appendChild(renderer.domElement);
 
@@ -218,9 +225,9 @@ labelRenderer.domElement.style.pointerEvents = 'none';
 container.appendChild(labelRenderer.domElement);
 
 // ---- lights & stars -----------------------------------------------------
-scene.add(new THREE.AmbientLight(0x2a3558, 0.14));
-scene.add(new THREE.HemisphereLight(0x9ec8ff, 0x1a1428, 0.32));
-var sunLight = new THREE.PointLight(0xfff4d6, 4.8, 280, 2);
+scene.add(new THREE.AmbientLight(0x1a2240, 0.08));
+scene.add(new THREE.HemisphereLight(0xb8d4ff, 0x120c18, 0.22));
+var sunLight = new THREE.PointLight(0xfff8e8, 6.2, 300, 2);
 var starGeo = new THREE.BufferGeometry();
 var starCount = 5200;
 var starPos = new Float32Array(starCount * 3);
@@ -277,17 +284,35 @@ function addAtmosphere(parent, radius, cfg) {
 }
 
 function planetMaterial(def, tex) {
+  var gas = isGasGiant(def.id);
   var mat = new THREE.MeshStandardMaterial({
     map: tex,
     color: 0xffffff,
-    roughness: def.roughness != null ? def.roughness : 0.75,
-    metalness: def.metalness != null ? def.metalness : 0.05,
-    bumpMap: tex,
-    bumpScale: def.bumpScale != null ? def.bumpScale : 0.15,
-    emissive: new THREE.Color(def.color),
-    emissiveIntensity: def.emissive != null ? def.emissive : 0.11
+    roughness: gas ? 0.55 : (def.roughness != null ? def.roughness : 0.82),
+    metalness: gas ? 0.02 : (def.metalness != null ? def.metalness : 0.04)
   });
+  if (!gas) {
+    mat.bumpMap = tex;
+    mat.bumpScale = def.bumpScale != null ? def.bumpScale : 0.12;
+  }
   return mat;
+}
+
+function makeRingMesh(inner, outer, tex) {
+  var ring = new THREE.Mesh(
+    new THREE.RingGeometry(inner, outer, 128),
+    new THREE.MeshBasicMaterial({
+      map: tex,
+      alphaMap: tex,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      color: 0xffffff
+    })
+  );
+  ring.rotation.x = Math.PI / 2;
+  return ring;
 }
 
 function buildScene(textures) {
@@ -317,7 +342,7 @@ function buildScene(textures) {
     var meshSize = 0.55 + def.size * 0.55;
     var segs = def.segments || 56;
     var body = new THREE.Group();
-    body.rotation.z = def.axialTilt || 0;
+    body.rotation.x = def.axialTilt || 0;
     var mesh = new THREE.Mesh(
       new THREE.SphereGeometry(meshSize, segs, segs),
       planetMaterial(def, textures[def.id])
@@ -330,13 +355,12 @@ function buildScene(textures) {
     if (def.clouds && textures[def.id + '_clouds']) {
       var clouds = new THREE.Mesh(
         new THREE.SphereGeometry(meshSize * 1.015, segs, segs),
-        new THREE.MeshStandardMaterial({
+        new THREE.MeshBasicMaterial({
           map: textures[def.id + '_clouds'],
           transparent: true,
-          opacity: 0.72,
+          opacity: 0.85,
           depthWrite: false,
-          roughness: 1,
-          metalness: 0
+          color: 0xffffff
         })
       );
       clouds.userData.isClouds = true;
@@ -344,21 +368,7 @@ function buildScene(textures) {
     }
 
     if (def.rings && textures.saturn_ring) {
-      var ring = new THREE.Mesh(
-        new THREE.RingGeometry(meshSize * 1.4, meshSize * 2.25, 128),
-        new THREE.MeshStandardMaterial({
-          map: textures.saturn_ring,
-          alphaMap: textures.saturn_ring,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.92,
-          depthWrite: false,
-          roughness: 0.85,
-          metalness: 0.05
-        })
-      );
-      ring.rotation.x = Math.PI / 2;
-      body.add(ring);
+      body.add(makeRingMesh(meshSize * 1.35, meshSize * 2.35, textures.saturn_ring));
     }
 
     var tilt = (idx % 5) * 0.12 - 0.22;
@@ -401,13 +411,9 @@ function buildScene(textures) {
     var moonTex = textures.moon;
     var moonMat = moonTex
       ? new THREE.MeshStandardMaterial({
-          map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.25,
-          emissive: new THREE.Color(MOON.color), emissiveIntensity: 0.09
+          map: moonTex, roughness: 1, metalness: 0, bumpMap: moonTex, bumpScale: 0.2
         })
-      : new THREE.MeshStandardMaterial({
-          color: 0xcccccc, roughness: 1,
-          emissive: new THREE.Color(MOON.color), emissiveIntensity: 0.09
-        });
+      : new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 1 });
     moonMesh = new THREE.Mesh(new THREE.SphereGeometry(earthSize * 0.28, 36, 36), moonMat);
     moonMesh.userData.orbit = moonOrbit;
     moonMesh.userData.orbitDays = MOON_ORBIT_DAYS;

@@ -45,7 +45,10 @@
       <label class="row"><input id="autoOrbit" type="checkbox" checked /> Auto-orbit camera</label>
       <label class="row"><input id="showOrbits" type="checkbox" checked /> Orbit paths</label>
       <label class="row"><input id="showLabels" type="checkbox" checked /> Planet labels</label>
-      <label>Time scale <input id="timeScale" type="range" min="0" max="100" value="35" /></label>
+      <label>Sim speed <span id="timeScaleLabel" class="hint">1 sec = 9 Earth days</span>
+        <input id="timeScale" type="range" min="0" max="100" value="35" />
+      </label>
+      <p id="timeScaleEarth" class="hint small">Earth year ≈ 41 sec · spin ≈ 9×/sec at this speed</p>
       <div class="btnrow">
         <button id="resetCam">Reset view</button>
         <button id="focusSun" class="ghost">Focus Sun</button>
@@ -69,7 +72,7 @@
     <div id="stats" class="glass-bar">
       <span><strong id="stat-bodies">10</strong> bodies</span>
       <span><strong id="stat-fps">0</strong> fps</span>
-      <span id="stat-scale">time ×1.0</span>
+      <span id="stat-scale">1 sec = 9 days</span>
     </div>
   </footer>
 

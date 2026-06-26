@@ -427,13 +427,15 @@ var SKY_FRAG = [
   '  vec2 uv = vec2(atan(dir.z, dir.x) / 6.2831853 + 0.5, asin(clamp(dir.y, -1.0, 1.0)) / 3.14159265 + 0.5);',
   '  vec3 stars = texture2D(starsMap, uv).rgb;',
   '  float horizon = smoothstep(-0.08, 0.42, dir.y);',
-  '  vec3 daySky = mix(vec3(0.42, 0.62, 0.95), vec3(0.12, 0.32, 0.72), horizon);',
+  '  vec3 daySky = mix(vec3(0.28, 0.48, 0.78), vec3(0.08, 0.22, 0.52), horizon);',
   '  float sunDot = max(dot(dir, sunDirection), 0.0);',
-  '  daySky += vec3(1.0, 0.94, 0.78) * pow(sunDot, 220.0) * 3.0;',
-  '  daySky += vec3(1.0, 0.72, 0.38) * pow(sunDot, 10.0) * 0.42;',
-  '  float sunset = exp(-abs(dir.y) * 7.0) * pow(1.0 - sunDot, 1.6);',
-  '  daySky += vec3(1.0, 0.38, 0.18) * sunset * 0.55;',
-  '  vec3 night = stars * (0.85 + 0.35 * pow(1.0 - max(dir.y, 0.0), 1.5));',
+  '  daySky += vec3(1.0, 0.94, 0.78) * pow(sunDot, 280.0) * 1.15;',
+  '  daySky += vec3(1.0, 0.72, 0.38) * pow(sunDot, 14.0) * 0.16;',
+  '  float sunset = exp(-abs(dir.y) * 7.0) * pow(1.0 - sunDot, 2.0);',
+  '  daySky += vec3(1.0, 0.42, 0.2) * sunset * 0.32 * (1.0 - dayBlend * 0.35);',
+  '  vec3 night = stars * (0.72 + 0.28 * pow(1.0 - max(dir.y, 0.0), 1.5));',
+  '  float twilight = smoothstep(0.0, 0.22, dayBlend) * (1.0 - smoothstep(0.72, 1.0, dayBlend));',
+  '  night = mix(night, night * vec3(1.08, 0.72, 0.52), twilight * 0.45);',
   '  vec3 color = mix(night, daySky, clamp(dayBlend, 0.0, 1.0));',
   '  gl_FragColor = vec4(color, 1.0);',
   '}'
@@ -476,8 +478,20 @@ var skyMat = null;
 var starSparkle = null;
 var moonMat = null;
 var skyNightColor = new THREE.Color(0x010208);
-var skyDayColor = new THREE.Color(0x1a3a68);
+var skyDayColor = new THREE.Color(0x142a4a);
 var tmpSunDir = new THREE.Vector3();
+var skySunDir = new THREE.Vector3();
+var SKY_PHASE_OFFSET = Math.PI * 0.55;
+var BLOOM_STRENGTH_NIGHT = 0.38;
+
+function smooth01(t) {
+  t = Math.max(0, Math.min(1, t));
+  return t * t * (3 - 2 * t);
+}
+
+function smoothRange(edge0, edge1, x) {
+  return smooth01((x - edge0) / (edge1 - edge0));
+}
 
 function buildSkyEnvironment(starsTex) {
   skyMat = new THREE.ShaderMaterial({
@@ -1065,23 +1079,30 @@ function resumeMotion() {
 function updateSkyCycle() {
   if (!skyMat) return;
 
-  tmpSunDir.copy(SUN_WORLD).sub(camera.position).normalize();
-  skyMat.uniforms.sunDirection.value.copy(tmpSunDir);
-
   var dayBlend = 0;
   var earth = planets[2];
   if (state.dayNightCycle && state.planetSpin && earth && earth.userData.body) {
-    var rot = earth.userData.body.rotation.y % (Math.PI * 2);
-    dayBlend = Math.cos(rot) * 0.5 + 0.5;
-    dayBlend = dayBlend * dayBlend * (3 - 2 * dayBlend);
+    var spin = earth.userData.body.rotation.y - (earth.userData.homeBodyRot || 0);
+    var sunElev = Math.sin(spin - SKY_PHASE_OFFSET);
+    var sunAz = Math.cos(spin - SKY_PHASE_OFFSET);
+    skySunDir.set(sunAz * 0.9, sunElev * 0.52, 0.42).normalize();
+    skyMat.uniforms.sunDirection.value.copy(skySunDir);
+    dayBlend = smoothRange(-0.1, 0.16, sunElev);
+  } else {
+    tmpSunDir.copy(SUN_WORLD).sub(camera.position).normalize();
+    skyMat.uniforms.sunDirection.value.copy(tmpSunDir);
   }
 
   skyMat.uniforms.dayBlend.value = dayBlend;
-  scene.background = skyNightColor.clone().lerp(skyDayColor, dayBlend * 0.55);
+  scene.background = skyNightColor.clone().lerp(skyDayColor, dayBlend * 0.34);
 
   if (starSparkle) {
-    starSparkle.material.opacity = 0.35 + (1 - dayBlend) * 0.55;
+    var starFade = 1 - smoothRange(0.04, 0.42, dayBlend);
+    starSparkle.material.opacity = starFade * 0.88;
+    starSparkle.visible = starFade > 0.02;
   }
+
+  bloomPass.strength = BLOOM_STRENGTH_NIGHT * (1 - dayBlend * 0.55);
 
   if (moonMat && moonMat.uniforms && moonMat.uniforms.earthPosition && earth) {
     earth.getWorldPosition(moonMat.uniforms.earthPosition.value);
@@ -1090,8 +1111,8 @@ function updateSkyCycle() {
   var statSky = document.getElementById('stat-sky');
   if (statSky) {
     if (!state.dayNightCycle) statSky.textContent = 'Deep space';
-    else if (dayBlend > 0.62) statSky.textContent = 'Day sky';
-    else if (dayBlend < 0.32) statSky.textContent = 'Night sky';
+    else if (dayBlend > 0.58) statSky.textContent = 'Day sky';
+    else if (dayBlend < 0.28) statSky.textContent = 'Night sky';
     else statSky.textContent = 'Sunrise / sunset';
   }
 }

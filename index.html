@@ -10,6 +10,12 @@
 </head>
 <body>
   <div id="view"></div>
+  <div id="loading" aria-live="polite">
+    <div class="loading-card">
+      <div class="loading-orbit" aria-hidden="true"></div>
+      <p>Loading solar system textures&hellip;</p>
+    </div>
+  </div>
   <div id="error" role="alert"></div>
 
   <header id="brand">
@@ -52,7 +58,8 @@
   <script type="importmap">
   {
     "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
     }
   }
   </script>

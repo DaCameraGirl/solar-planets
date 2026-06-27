@@ -9,17 +9,42 @@
       <stop offset="0%" stop-color="#58a6ff"/>
       <stop offset="100%" stop-color="#4fd6e0"/>
     </linearGradient>
+    <linearGradient id="shimmer" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#58a6ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#58a6ff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#4fd6e0" stop-opacity="0"/>
+    </linearGradient>
   </defs>
   <rect width="920" height="220" rx="18" fill="url(#bg)"/>
-  <rect x="1" y="1" width="918" height="218" rx="17" fill="none" stroke="rgba(188,140,255,0.28)" stroke-width="2"/>
-  <circle cx="96" cy="110" r="52" fill="rgba(188,140,255,0.08)" stroke="rgba(188,140,255,0.35)" stroke-width="2"/>
-  <rect x="72" y="86" width="48" height="36" rx="10" fill="none" stroke="url(#accent)" stroke-width="3"/>
-  <circle cx="84" cy="102" r="4" fill="#4fd6e0"/>
-  <circle cx="96" cy="102" r="4" fill="#4fd6e0"/>
-  <circle cx="108" cy="102" r="4" fill="#4fd6e0"/>
-  <path d="M78 118 Q96 128 114 118" fill="none" stroke="#58a6ff" stroke-width="2" stroke-linecap="round"/>
+  <rect x="-200" y="0" width="240" height="220" rx="18" fill="url(#shimmer)" opacity="0.9">
+    <animate attributeName="x" values="-240;920" dur="7s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="1" y="1" width="918" height="218" rx="17" fill="none" stroke="#58a6ff" stroke-width="2" opacity="0.35">
+    <animate attributeName="opacity" values="0.35;0.65;0.35" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  
+  <g transform="translate(96,110)">
+    <circle r="46" fill="none" stroke="#58a6ff" stroke-width="1.5" opacity="0.35">
+      <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="32" fill="none" stroke="#4fd6e0" stroke-width="1" opacity="0.5" stroke-dasharray="4 6">
+      <animateTransform attributeName="transform" type="rotate" from="360 0 0" to="0 0 0" dur="12s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="5" fill="#4fd6e0">
+      <animateMotion dur="4s" repeatCount="indefinite" path="M 38 0 A 38 38 0 1 1 -38 0 A 38 38 0 1 1 38 0"/>
+    </circle>
+    <circle r="3" fill="#58a6ff" opacity="0.8">
+      <animateMotion dur="7s" repeatCount="indefinite" path="M 0 -28 A 28 28 0 1 1 0 28 A 28 28 0 1 1 0 -28"/>
+    </circle>
+  </g>
   <text x="170" y="92" fill="#f8fbff" font-family="Segoe UI, system-ui, sans-serif" font-size="38" font-weight="800">Solar Planets</text>
   <text x="170" y="126" fill="#9db4d1" font-family="Segoe UI, system-ui, sans-serif" font-size="17" font-weight="500">Cinematic 3D solar system in the browser — real planets, living orbits, enterprise observatory UI.</text>
-  <rect x="170" y="148" width="88" height="28" rx="14" fill="rgba(188,140,255,0.14)" stroke="#58a6ff66" stroke-width="1"/><text x="214" y="167" fill="#58a6ff" font-family="Segoe UI, system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle">3D WEBGL</text>
-  <rect x="270" y="148" width="112" height="28" rx="14" fill="rgba(188,140,255,0.14)" stroke="#4fd6e066" stroke-width="1"/><text x="326" y="167" fill="#4fd6e0" font-family="Segoe UI, system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle">OBSERVATORY</text>
+  <rect x="170" y="148" width="88" height="28" rx="14" fill="rgba(188,140,255,0.14)" stroke="#58a6ff66" stroke-width="1">
+    <animate attributeName="opacity" values="1;0.75;1" dur="2.5s" begin="0s" repeatCount="indefinite"/>
+  </rect>
+  <text x="214" y="167" fill="#58a6ff" font-family="Segoe UI, system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle">3D WEBGL</text>
+  <rect x="270" y="148" width="112" height="28" rx="14" fill="rgba(188,140,255,0.14)" stroke="#4fd6e066" stroke-width="1">
+    <animate attributeName="opacity" values="1;0.75;1" dur="2.5s" begin="0.3s" repeatCount="indefinite"/>
+  </rect>
+  <text x="326" y="167" fill="#4fd6e0" font-family="Segoe UI, system-ui, sans-serif" font-size="12" font-weight="700" text-anchor="middle">OBSERVATORY</text>
 </svg>

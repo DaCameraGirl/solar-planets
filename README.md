@@ -1,7 +1,39 @@
 <p align="center">
-  <img src="docs/assets/readme-hero.svg" alt="Solar Planets — cinematic 3D solar system in your browser" width="100%"/>
+  <img src="docs/readme-banner.svg" alt="Solar Planets — Cinematic 3D solar system in the browser — real planets, living orbits, enterprise observatory UI." width="720" />
 </p>
 
+<p align="center">
+  <strong>Cinematic 3D solar system in the browser — real planets, living orbits, enterprise observatory UI.</strong>
+</p>
+
+<p align="center">
+  <a href="https://dacameragirl.github.io/solar-planets/"><img src="https://img.shields.io/badge/Live-GitHub%20Pages-33d69f?style=for-the-badge&logo=github&logoColor=white" alt="Live demo" /></a>
+  <a href="https://github.com/DaCameraGirl/solar-planets"><img src="https://img.shields.io/badge/Code-GitHub-58a6ff?style=for-the-badge&logo=github&logoColor=white" alt="Source code" /></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/deploy-GitHub Pages-000000?style=flat-square&logo=github&logoColor=white" alt="deploy-GitHub Pages" />
+  <img src="https://img.shields.io/badge/privacy-browser only-4fd6e0?style=flat-square" alt="privacy-browser only" />
+</p>
+
+### Languages
+
+<p align="center">
+  <img src="https://img.shields.io/badge/JavaScript-80%25-F7DF1E?style=flat-square&logo=javascript&logoColor=111" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/CSS-14%25-1572B6?style=flat-square&logo=css3&logoColor=white" alt="CSS" />
+  <img src="https://img.shields.io/badge/HTML-6%25-E34F26?style=flat-square&logo=html5&logoColor=white" alt="HTML" />
+</p>
+
+### Stack
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Three.js-3D-000000?style=flat-square" alt="Three.js-3D" />
+  <img src="https://img.shields.io/badge/GitHub Pages-live-33d69f?style=flat-square&logo=github&logoColor=white" alt="GitHub Pages-live" />
+</p>
+
+<p align="center">
+  Built by <strong>Angela Hudson</strong> · <a href="https://github.com/DaCameraGirl">DaCameraGirl</a>
+</p>
 # Solar Planets
 
 <p align="center">
@@ -41,7 +73,9 @@ A standalone cinematic 3D solar system in the browser. Real planets, living orbi
   <img src="docs/assets/readme-divider.svg" alt="" width="100%"/>
 </p>
 
-## Repo vs live
+<p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=Repo%20vs%20live&fontSize=22&fontColor=e6edf3" width="720" alt="Repo vs live" /></p>
+
 
 | What | URL |
 |---|---|
@@ -54,7 +88,9 @@ A standalone cinematic 3D solar system in the browser. Real planets, living orbi
   <img src="docs/assets/readme-divider.svg" alt="" width="100%"/>
 </p>
 
-## What this is
+<p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=What%20this%20is&fontSize=22&fontColor=e6edf3" width="720" alt="What this is" /></p>
+
 
 | | Latent Space Observatory | **Solar Planets** (this repo) |
 |---|---|---|
@@ -62,7 +98,9 @@ A standalone cinematic 3D solar system in the browser. Real planets, living orbi
 | Main visual | Data points + semantic clusters | **Planets are the whole point** |
 | Audience | ML researchers | Everyone |
 
-## Highlights
+<p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=Highlights&fontSize=22&fontColor=e6edf3" width="720" alt="Highlights" /></p>
+
 
 | Feature | What it does |
 |---|---|
@@ -82,7 +120,9 @@ Mouse: drag to look around · scroll to zoom.
   <img src="docs/assets/readme-divider.svg" alt="" width="100%"/>
 </p>
 
-## Run locally
+<p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=Run%20locally&fontSize=22&fontColor=e6edf3" width="720" alt="Run locally" /></p>
+
 
 No build step required.
 
@@ -94,6 +134,8 @@ npx serve .
 
 Open `http://localhost:3000`
 
-## License
+<p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=License&fontSize=22&fontColor=e6edf3" width="720" alt="License" /></p>
+
 
 © 2026 Angela Hudson (DaCameraGirl). All rights reserved. See [LICENSE](LICENSE).

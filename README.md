@@ -74,7 +74,7 @@ A standalone cinematic 3D solar system in the browser. Real planets, living orbi
 </p>
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=Repo%20vs%20live&fontSize=22&fontColor=e6edf3" width="720" alt="Repo vs live" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=Repo%20vs%20live&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="Repo vs live" /></p>
 
 
 | What | URL |
@@ -89,7 +89,7 @@ A standalone cinematic 3D solar system in the browser. Real planets, living orbi
 </p>
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=What%20this%20is&fontSize=22&fontColor=e6edf3" width="720" alt="What this is" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=What%20this%20is&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="What this is" /></p>
 
 
 | | Latent Space Observatory | **Solar Planets** (this repo) |
@@ -99,7 +99,7 @@ A standalone cinematic 3D solar system in the browser. Real planets, living orbi
 | Audience | ML researchers | Everyone |
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=Highlights&fontSize=22&fontColor=e6edf3" width="720" alt="Highlights" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=Highlights&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="Highlights" /></p>
 
 
 | Feature | What it does |
@@ -121,7 +121,7 @@ Mouse: drag to look around · scroll to zoom.
 </p>
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=Run%20locally&fontSize=22&fontColor=e6edf3" width="720" alt="Run locally" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=Run%20locally&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="Run locally" /></p>
 
 
 No build step required.
@@ -135,7 +135,7 @@ npx serve .
 Open `http://localhost:3000`
 
 <p align="center"><img src="docs/readme-divider.svg" width="720" alt="" /></p>
-<p align="center"><img src="https://capsule-render.vercel.app/api?type=rect&color=070b14&height=50&section=header&text=License&fontSize=22&fontColor=e6edf3" width="720" alt="License" /></p>
+<p align="center"><img src="https://capsule-render.vercel.app/api?type=waving&color=0:070b14,100:12102a&height=50&section=header&text=License&fontSize=22&fontColor=e6edf3&animation=twinkling" width="720" alt="License" /></p>
 
 
 © 2026 Angela Hudson (DaCameraGirl). All rights reserved. See [LICENSE](LICENSE).
